@@ -6,6 +6,8 @@ const {
   hashToken,
 } = require("../utils/session-token.js");
 
+const { generateAccessToken } = require("../utils/jwt.js");
+
 const userRepository = new UserRepository();
 const sessionRepository = new SessionRepository();
 
@@ -34,9 +36,10 @@ class UserService {
         throw new Error("Invalid password");
       }
 
+      //generate session
       const sessionToken = generateSessionToken();
       const tokenHash = hashToken(sessionToken);
-      const now = Date.now();
+      const now = Date.now(); //return number which are milliseconds
       const expiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000);
       const absoluteExpiry = new Date(now + 30 * 24 * 60 * 60 * 1000);
 
@@ -47,18 +50,68 @@ class UserService {
         absoluteExpiry,
       };
       const session = await sessionRepository.create(token);
+
+      //generate jwt
+      const accessToken = generateAccessToken({
+        userId: user.id,
+        sessionId: session.id,
+      });
+
       return {
-        session,
         user,
-        sessionToken
+        accessToken,
+        sessionToken,
       };
     } catch (error) {
-      console.log("Something went wrong in the service layer.",error);
+      console.log("Something went wrong in the service layer.", error);
       throw error;
-
     }
+  }
 
-    return user;
+  async refresh(sessionToken) {
+    try {
+      const tokenHash = hashToken(sessionToken);
+
+      const session = await sessionRepository.fetchByToken(tokenHash);
+
+      if (!session) {
+        throw new Error("Invalid session");
+      }
+
+      //checking expiry of session token
+      const now = new Date();
+      if (now > session.expiresAt) {
+        throw new Error("Session expired");
+      }
+
+      if (now > session.absoluteExpiry) {
+        throw new Error("Session exceeded maximum lifetime");
+      }
+
+      // rotate session token
+      const newSessionToken = generateSessionToken();
+      const newHash = hashToken(newSessionToken);
+      const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      await sessionRepository.update(session.id, {
+        tokenHash: newHash,
+        expiresAt: newExpiresAt,
+      });
+
+      // issue new JWT
+      const accessToken = generateAccessToken({
+        userId: session.userId,
+        sessionId: session.id,
+      });
+
+      return {
+        accessToken,
+        newSessionToken,
+      };
+    } catch (error) {
+      console.log("Something went wrong in the service layer.");
+      throw error;
+    }
   }
 
   async fetch(id) {

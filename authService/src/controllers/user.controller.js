@@ -1,4 +1,3 @@
-const session = require("../models/session");
 const userService = require("../services/user.service");
 
 const registerUser = async (req, res) => {
@@ -7,7 +6,7 @@ const registerUser = async (req, res) => {
     return res.status(201).json({
       data: data,
       success: true,
-      message: "Successfully created the Airplane",
+      message: "Successfully created the User",
       error: {},
     });
   } catch (error) {
@@ -36,6 +35,7 @@ const login = async (req, res) => {
         id: result.user.id,
         email: result.user.email,
       },
+      successToken: result.accessToken,
     });
   } catch (error) {
     console.log(error);
@@ -47,6 +47,35 @@ const login = async (req, res) => {
     });
   }
 };
+
+async function refresh(req, res) {
+  try {
+    const sessionToken = req.cookies.sessionToken;
+
+    if (!sessionToken) {
+      return res.status(401).json({
+        message: "Session token missing",
+      });
+    }
+
+    const result = await userService.refresh(sessionToken);
+
+    res.cookie("sessionToken", result.newSessionToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: false,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      accessToken: result.accessToken,
+    });
+  } catch (error) {
+    return res.status(401).json({
+      message: error.message,
+    });
+  }
+}
 
 const fetchUser = async (req, res) => {
   try {
@@ -114,4 +143,5 @@ module.exports = {
   updateUser,
   deleteUser,
   login,
+  refresh
 };
