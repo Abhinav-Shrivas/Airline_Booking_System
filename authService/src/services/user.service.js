@@ -36,6 +36,16 @@ class UserService {
         throw new Error("Invalid password");
       }
 
+      //check if more than two sessions already exists
+      const sessions = await sessionRepository.findAllSessions(user.id);
+      if (sessions.length >= 2) {
+        // Delete all sessions except the 1 newest one
+        const sessionsToDelete = sessions.length - 1;
+        for (let i = 0; i < sessionsToDelete; i++) {
+          await sessionRepository.destroy(sessions[i].id);
+        }
+      }
+
       //generate session
       const sessionToken = generateSessionToken();
       const tokenHash = hashToken(sessionToken);
@@ -63,7 +73,7 @@ class UserService {
         sessionToken,
       };
     } catch (error) {
-      console.log("Something went wrong in the service layer.", error);
+      console.log("Something went wrong in the service layer.");
       throw error;
     }
   }
@@ -108,6 +118,56 @@ class UserService {
         accessToken,
         newSessionToken,
       };
+    } catch (error) {
+      console.log("Something went wrong in the service layer.");
+      throw error;
+    }
+  }
+
+  async logout(sessionToken) {
+    try {
+      const tokenHash = hashToken(sessionToken);
+      await sessionRepository.deleteByTokenHash(tokenHash);
+      return true;
+    } catch (error) {
+      console.log("Something went wrong in the service layer.");
+      throw error;
+    }
+  }
+
+  async logoutFromAllDevices(sessionToken) {
+    try {
+      const tokenHash = hashToken(sessionToken);
+      const session = await sessionRepository.fetchByToken(tokenHash);
+      if (!session) return true; //logout multiple times is still success.
+      await sessionRepository.deleteByUserId(session.userId);
+      return true;
+    } catch (error) {
+      console.log("Something went wrong in the service layer.");
+      throw error;
+    }
+  }
+
+  async changePassword(userId, data) {
+    try {
+      const { currentPassword, newPassword } = data;
+
+      if (currentPassword === newPassword) {
+        throw new Error("New password must be different from current password");
+      }
+
+      const user = await userRepository.fetch(userId);
+      const isPasswordValid = await comparePassword(
+        currentPassword,
+        user.password,
+      );
+
+      if (!isPasswordValid) {
+        throw new Error("Invalid current password");
+      }
+      await userRepository.update(userId, { password: newPassword });
+      await sessionRepository.deleteByUserId(userId);
+      return true;
     } catch (error) {
       console.log("Something went wrong in the service layer.");
       throw error;

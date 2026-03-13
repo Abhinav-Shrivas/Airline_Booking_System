@@ -2,6 +2,7 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const { PORT } = require("./config/serverConfig");
 const apiRoutes = require("./routes/index.js");
+require("./jobs/clean-expired-sessions"); 
 
 
 const setAndStartServer = async () => {

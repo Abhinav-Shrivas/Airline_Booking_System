@@ -3,7 +3,7 @@ const {JWT_SECRET_KEY} = require("../config/serverConfig");
 
 function generateAccessToken(payload){
     return jwt.sign(payload, JWT_SECRET_KEY, {
-        expiresIn : "30s"
+        expiresIn : "15m"
     });
 };
 

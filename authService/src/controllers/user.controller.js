@@ -15,7 +15,7 @@ const registerUser = async (req, res) => {
       data: {},
       success: false,
       message: "Something went wrong in the User controller",
-      error: error,
+      error: error.message,
     });
   }
 };
@@ -43,7 +43,7 @@ const login = async (req, res) => {
       data: {},
       success: false,
       message: "Something went wrong in the User controller",
-      error: error,
+      error: error.message,
     });
   }
 };
@@ -72,10 +72,82 @@ async function refresh(req, res) {
     });
   } catch (error) {
     return res.status(401).json({
-      message: error.message,
+       success: false,
+      error: error.message,
     });
   }
 }
+
+async function logout(req, res) {
+  try {
+    const sessionToken = req.cookies.sessionToken;
+
+    if (!sessionToken) {
+      return res.status(401).json({
+        message: "Session token missing",
+      });
+    }
+
+    await userService.logout(sessionToken);
+    res.clearCookie("sessionToken");
+
+    return res.status(200).json({
+      success: true,
+      message: "Successfully logout the User.",
+      error: {},
+    });
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      error: error.message,
+    });
+  }
+}
+
+async function logoutFromAllDevices(req, res) {
+  try {
+    const sessionToken = req.cookies.sessionToken;
+
+    if (!sessionToken) {
+      return res.status(401).json({
+        message: "Session token missing",
+      });
+    }
+
+    await userService.logoutFromAllDevices(sessionToken);
+    res.clearCookie("sessionToken");
+    
+    return res.status(200).json({
+      success: true,
+      message: "Successfully logout the User from all the devices.",
+      error: {},
+    });
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      error: error.message,
+    });
+  }
+}
+
+const changePassword = async (req, res) => {
+  try {
+    await userService.changePassword(req.jwtPayload.userId,req.body);
+    res.clearCookie("sessionToken");
+    return res.status(200).json({
+      success: true,
+      message: "Successfully changed the user password.",
+      error: {},
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong in the User controller",
+      error: error.message,
+    });
+  }
+};
 
 const fetchUser = async (req, res) => {
   try {
@@ -92,7 +164,7 @@ const fetchUser = async (req, res) => {
       data: {},
       success: false,
       message: "Something went wrong in the User controller",
-      error: error,
+      error: error.message,
     });
   }
 };
@@ -112,7 +184,7 @@ const updateUser = async (req, res) => {
       data: {},
       success: false,
       message: "Something went wrong in the User controller",
-      error: error,
+      error: error.message,
     });
   }
 };
@@ -132,7 +204,7 @@ const deleteUser = async (req, res) => {
       data: {},
       success: false,
       message: "Something went wrong in the User controller.",
-      error: error,
+      error: error.message,
     });
   }
 };
@@ -143,5 +215,8 @@ module.exports = {
   updateUser,
   deleteUser,
   login,
-  refresh
+  logout,
+  refresh,
+  logoutFromAllDevices,
+  changePassword
 };

@@ -38,6 +38,7 @@ class UserRepository {
         where: {
           id: id,
         },
+        individualHooks: true
       });
       return true;
     } catch (error) {

@@ -13,7 +13,20 @@ class SessionRepository {
 
   async fetchByToken(tokenHash) {
     try {
-      const response = await Session.findOne({ where: {tokenHash} });
+      const response = await Session.findOne({ where: { tokenHash } });
+      return response;
+    } catch (error) {
+      console.log("something went wrong in the repository layer");
+      throw error;
+    }
+  }
+
+  async findAllSessions(userId) {
+    try {
+      const response = await Session.findAll({
+        where: { userId },
+        order: [["createdAt", "ASC"]],
+      });
       return response;
     } catch (error) {
       console.log("something went wrong in the repository layer");
@@ -31,6 +44,28 @@ class SessionRepository {
       return true;
     } catch (error) {
       console.log("Something went wrong in the repository layer.");
+      throw error;
+    }
+  }
+
+  async deleteByUserId(userId) {
+    try {
+     return await Session.destroy({
+        where: { userId },
+      });
+    } catch (error) {
+      console.log("something went wrong in the repository layer");
+      throw error;
+    }
+  }
+
+  async deleteByTokenHash(tokenHash) {
+    try {
+     return await Session.destroy({
+        where: { tokenHash },
+      });
+    } catch (error) {
+      console.log("something went wrong in the repository layer");
       throw error;
     }
   }

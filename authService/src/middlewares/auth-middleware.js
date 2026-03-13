@@ -14,7 +14,7 @@ async function authMiddleware(req, res, next) {
 
     const payload = verifyAccessToken(token);
 
-    req.user = payload;
+    req.jwtPayload = payload;
 
     next();
   } catch (error) {

@@ -1,11 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../../controllers/user.controller");
-// const authMiddleware = require("../../middlewares/auth-middleware");
+const loginLimiter = require("../../middlewares/login-rate-limit")
+const authMiddleware = require("../../middlewares/auth-middleware");
 
 router.post("/register", userController.registerUser);
-router.post("/login", userController.login);
+router.post("/login",loginLimiter, userController.login);
 router.post("/refresh",userController.refresh);
+router.post("/logout",userController.logout);
+router.post("/change-password",authMiddleware, userController.changePassword);
+router.post("/logoutFromAllDevice",userController.logoutFromAllDevices);
 router.delete("/:id", userController.deleteUser);
 router.patch("/:id", userController.updateUser);
 // router.get("/testing", authMiddleware, (req, res) => {
