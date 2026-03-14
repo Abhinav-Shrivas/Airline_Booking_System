@@ -1,9 +1,9 @@
-const {User} = require('../models/index');
+const { Otp } = require("../models/index");
 
-class UserRepository {
+class OtpRepository {
   async create(data) {
     try {
-      const response = await User.create(data);
+      const response = await Otp.create(data);
       return response;
     } catch (error) {
       console.log("something went wrong in the repository layer");
@@ -13,8 +13,7 @@ class UserRepository {
 
   async fetch(id) {
     try {
-      console.log("inside fetch function",id);
-      const response = await User.findByPk(id);
+      const response = await Otp.findByPk(id);
       return response;
     } catch (error) {
       console.log("something went wrong in the repository layer");
@@ -22,24 +21,12 @@ class UserRepository {
     }
   }
 
-  async fetchByEmail(email) {
-  try {
-    const response = await User.findOne({ where: { email } });
-    return response;
-  } catch (error) {
-    console.log("Something went wrong in the repository layer");
-    throw error;
-  }
-}
-
-
   async update(id, data) {
     try {
-      await User.update(data, {
+      await Otp.update(data, {
         where: {
           id: id,
         },
-        individualHooks: true
       });
       return true;
     } catch (error) {
@@ -48,9 +35,21 @@ class UserRepository {
     }
   }
 
+  async deleteByEmail(email) {
+    try {
+      await Otp.destroy({
+        where: { email },
+      });
+      return true;
+    } catch (error) {
+      console.log("something went wrong in the repository layer");
+      throw error;
+    }
+  }
+
   async destroy(id) {
     try {
-      await User.destroy({ where: { id } });
+      await Otp.destroy({ where: { id } });
       return true;
     } catch (error) {
       console.log("something went wrong in the repository layer");
@@ -59,4 +58,4 @@ class UserRepository {
   }
 }
 
-module.exports = UserRepository;
+module.exports = OtpRepository;

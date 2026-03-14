@@ -132,6 +132,7 @@ async function logoutFromAllDevices(req, res) {
 
 const changePassword = async (req, res) => {
   try {
+    console.log(req.jwtPayload);
     await userService.changePassword(req.jwtPayload.userId,req.body);
     res.clearCookie("sessionToken");
     return res.status(200).json({
@@ -146,6 +147,67 @@ const changePassword = async (req, res) => {
       message: "Something went wrong in the User controller",
       error: error.message,
     });
+  }
+};
+
+const sendOtp = async (req, res) => {
+  try {
+    const response = await userService.sendOtp(req.body.email);
+    return res.status(200).json({
+      success: true,
+      otpId : response.otpId,
+      message: "If the email exists, successfully send the otp.",
+      error: {},
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong in the User controller",
+      error: error.message,
+    });
+  }
+};
+
+const verifyOtp = async (req, res) => {
+  try {
+    const resetToken = await userService.verifyOtp(req.body);
+    return res.status(200).json({
+      success: true,
+      resetToken,
+      message: "Successfully verified the otp.",
+      error: {},
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong in the User controller",
+      error: error.message,
+    });
+  }
+};
+
+const resetPasswordUsingToken = async (req, res) => {
+  try {
+
+    const { newPassword } = req.body;
+    const email = req.resetPayload.email;
+
+    await userService.changePasswordWithToken(email, newPassword);
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successful"
+    });
+
+  } catch (error) {
+
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+
   }
 };
 
@@ -218,5 +280,8 @@ module.exports = {
   logout,
   refresh,
   logoutFromAllDevices,
-  changePassword
+  changePassword,
+  sendOtp,
+  verifyOtp,
+  resetPasswordUsingToken
 };

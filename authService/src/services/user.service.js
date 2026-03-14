@@ -1,17 +1,23 @@
 const UserRepository = require("../repositories/user.repository.js");
 const SessionRepository = require("../repositories/session.repository.js");
+const OtpRepository = require("../repositories/otp.repository.js");
 const { comparePassword } = require("../utils/password.js");
 const {
   generateSessionToken,
   hashToken,
-} = require("../utils/session-token.js");
+  generateOtp,
+  generateUuid,
+} = require("../utils/session-token-otp.js");
+const sendEmail = require("../utils/sendEmail.js");
 
-const { generateAccessToken } = require("../utils/jwt.js");
+const { generateAccessToken, generateResetToken } = require("../utils/jwt.js");
 
 const userRepository = new UserRepository();
 const sessionRepository = new SessionRepository();
+const otpRepository = new OtpRepository();
 
 class UserService {
+  //register
   async register(data) {
     try {
       const response = await userRepository.create(data);
@@ -22,6 +28,7 @@ class UserService {
     }
   }
 
+  //login
   async login(data) {
     try {
       const { email, password } = data;
@@ -78,6 +85,7 @@ class UserService {
     }
   }
 
+  //refresh
   async refresh(sessionToken) {
     try {
       const tokenHash = hashToken(sessionToken);
@@ -124,6 +132,7 @@ class UserService {
     }
   }
 
+  //logout
   async logout(sessionToken) {
     try {
       const tokenHash = hashToken(sessionToken);
@@ -135,6 +144,7 @@ class UserService {
     }
   }
 
+  //logoutFromAllDevices
   async logoutFromAllDevices(sessionToken) {
     try {
       const tokenHash = hashToken(sessionToken);
@@ -148,6 +158,7 @@ class UserService {
     }
   }
 
+  //changePassword when user knows his/her old password
   async changePassword(userId, data) {
     try {
       const { currentPassword, newPassword } = data;
@@ -155,7 +166,6 @@ class UserService {
       if (currentPassword === newPassword) {
         throw new Error("New password must be different from current password");
       }
-
       const user = await userRepository.fetch(userId);
       const isPasswordValid = await comparePassword(
         currentPassword,
@@ -174,6 +184,88 @@ class UserService {
     }
   }
 
+  //forgot password
+
+  //generate and send otp
+  async sendOtp(email) {
+    try {
+      const otp = generateOtp();
+      const otpHash = hashToken(toString(otp));
+      const now = Date.now();
+      const expiresAt = new Date(now + 2 * 60 * 1000);
+      const otpData = {
+        otpHash,
+        expiresAt,
+        email,
+      };
+
+      //race condtion could occur in delete and creating data in otp so we can handle it by upsert or transaction(currently not implementing them).
+      await otpRepository.deleteByEmail(email);
+      const user = await userRepository.fetchByEmail(email);
+      if (user) {
+        const emailText = `Otp is: ${otp}`;
+        const otpSession = await otpRepository.create(otpData);
+        // if sendEmail fails then we delete the otp stored and throw the error
+        try {
+          await sendEmail(email, "OTP", emailText);
+        } catch (error) {
+          await otpRepository.deleteByEmail(email);
+          throw error;
+        }
+        return { otpId: otpSession.id };
+      }
+      // fake id if user doesn't exist to prevent data enumeration attack
+      return { otpId: generateUuid() };
+    } catch (error) {
+      console.log("Something went wrong in the service layer.");
+      throw error;
+    }
+  }
+
+  //verify otp
+  async verifyOtp(data) {
+    try {
+      const { otpId, otp } = data;
+      const hashOtp = hashToken(toString(otp));
+      const storeOtp = await otpRepository.fetch(otpId);
+
+      if (storeOtp) {
+        const attempts = storeOtp.attemptCount;
+        const isExpired = new Date() > storeOtp.expiresAt;
+        if (isExpired)
+          throw new Error("Expired Otp. Please request otp again.");
+        if (attempts >= 5)
+          throw new Error("Attemp limit reached. Please quest otp again.");
+        if (storeOtp.otpHash !== hashOtp) {
+          await otpRepository.update(otpId, { attemptCount: attempts + 1 });
+          throw new Error("Wrong Otp. Please type correct Otp.");
+        }
+        const resetToken = generateResetToken(storeOtp.email);
+        await otpRepository.deleteByEmail(storeOtp.email);
+
+        return resetToken;
+      }
+      throw new Error("Invalid request. Please try again.");
+    } catch (error) {
+      console.log("Something went wrong in the service layer.");
+      throw error;
+    }
+  }
+
+  // change password using temporary access token
+    async changePasswordWithToken(email, newPassword) {
+    try {
+      const user = await userRepository.fetchByEmail(email);
+      await userRepository.update(user.id, { password: newPassword });
+      await sessionRepository.deleteByUserId(user.id);
+      return true;
+    } catch (error) {
+      console.log("Something went wrong in the service layer.");
+      throw error;
+    }
+  }
+
+  //fetch user using id
   async fetch(id) {
     try {
       const response = await userRepository.fetch(id);
@@ -184,6 +276,7 @@ class UserService {
     }
   }
 
+  //update using using id
   async update(id, data) {
     try {
       const response = await userRepository.update(id, data);
@@ -194,6 +287,7 @@ class UserService {
     }
   }
 
+  //delete user using id
   async destroy(id) {
     try {
       const response = await userRepository.destroy(id);
