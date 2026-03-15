@@ -10,14 +10,72 @@ const {
 } = require("../utils/crypto.js");
 const sendEmail = require("../utils/sendEmail.js");
 const { generateAccessToken, generateResetToken } = require("../utils/jwt.js");
+const {
+  SESSION_ROLLING_DAYS,
+  SESSION_ABSOLUTE_DAYS,
+  SESSION_LIMIT_PER_USER,
+  OTP_EXPIRY_MINUTES,
+  OTP_MAX_ATTEMPTS,
+} = require("../config/serverConfig.js");
 
 const userRepository = new UserRepository();
 const sessionRepository = new SessionRepository();
 const otpRepository = new OtpRepository();
 
-class AuthService{
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const MS_PER_MINUTE = 60 * 1000;
 
-  //login
+class AuthService {
+  /** Creates a new session for the user and returns session token + access token. */
+  async _createSessionForUser(userId) {
+    const sessionToken = generateSessionToken();
+    const tokenHash = hashToken(sessionToken);
+    const now = Date.now();
+    const expiresAt = new Date(now + SESSION_ROLLING_DAYS * MS_PER_DAY);
+    const absoluteExpiry = new Date(now + SESSION_ABSOLUTE_DAYS * MS_PER_DAY);
+
+    const session = await sessionRepository.create({
+      tokenHash,
+      userId,
+      expiresAt,
+      absoluteExpiry,
+    });
+
+    const accessToken = generateAccessToken({
+      userId,
+      sessionId: session.id,
+    });
+
+    return { session, sessionToken, accessToken };
+  }
+
+  /** Verifies OTP by id + code; returns stored OTP record or throws. */
+  async _verifyOtp(otpId, otp) {
+    const storeOtp = await otpRepository.fetch(otpId);
+    if (!storeOtp) {
+      throw new Error("Invalid request. Please try again.");
+    }
+
+    const attempts = storeOtp.attemptCount;
+    const isExpired = new Date() > storeOtp.expiresAt;
+
+    if (isExpired) {
+      await otpRepository.deleteByEmail(storeOtp.email);
+      throw new Error("Expired Otp. Please request otp again.");
+    }
+    if (attempts >= OTP_MAX_ATTEMPTS) {
+      await otpRepository.deleteByEmail(storeOtp.email);
+      throw new Error("Attemp limit reached. Please request otp again.");
+    }
+    const hashOtp = hashToken(String(otp));
+    if (storeOtp.otpHash !== hashOtp) {
+      await otpRepository.update(otpId, { attemptCount: attempts + 1 });
+      throw new Error("Wrong Otp. Please type correct Otp.");
+    }
+
+    return storeOtp;
+  }
+
   async login(data) {
     try {
       const { email, password } = data;
@@ -32,36 +90,15 @@ class AuthService{
         throw new Error("Invalid password");
       }
 
-      //check if more than two sessions already exists
       const sessions = await sessionRepository.findAllSessions(user.id);
-      if (sessions.length >= 2) {
-        // Delete all sessions except the 1 newest one
+      if (sessions.length >= SESSION_LIMIT_PER_USER) {
         const sessionsToDelete = sessions.length - 1;
         for (let i = 0; i < sessionsToDelete; i++) {
           await sessionRepository.destroy(sessions[i].id);
         }
       }
 
-      //generate session
-      const sessionToken = generateSessionToken();
-      const tokenHash = hashToken(sessionToken);
-      const now = Date.now(); //return number which are milliseconds
-      const expiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000);
-      const absoluteExpiry = new Date(now + 30 * 24 * 60 * 60 * 1000);
-
-      const token = {
-        tokenHash,
-        userId: user.id,
-        expiresAt,
-        absoluteExpiry,
-      };
-      const session = await sessionRepository.create(token);
-
-      //generate jwt
-      const accessToken = generateAccessToken({
-        userId: user.id,
-        sessionId: session.id,
-      });
+      const { sessionToken, accessToken } = await this._createSessionForUser(user.id);
 
       return {
         user,
@@ -74,62 +111,24 @@ class AuthService{
     }
   }
 
-  //login with otp
   async loginWithOtp(data) {
     try {
-      //verify otp
       const { otpId, otp } = data;
-      const hashOtp = hashToken(String(otp));
-      const storeOtp = await otpRepository.fetch(otpId);
+      const storeOtp = await this._verifyOtp(otpId, otp);
 
-      if (storeOtp) {
-        const user = await userRepository.fetchByEmail(storeOtp.email);
-        const attempts = storeOtp.attemptCount;
-        const isExpired = new Date() > storeOtp.expiresAt;
-        if (isExpired) {
-          await otpRepository.deleteByEmail(storeOtp.email);
-          throw new Error("Expired Otp. Please request otp again.");
-        }
-        if (attempts >= 5){
-          await otpRepository.deleteByEmail(storeOtp.email);
-          throw new Error("Attemp limit reached. Please request otp again.");
-        }
-        if (storeOtp.otpHash !== hashOtp) {
-          await otpRepository.update(otpId, { attemptCount: attempts + 1 });
-          throw new Error("Wrong Otp. Please type correct Otp.");
-        }
-        if (!user) {
-          throw new Error("User not found");
-        }
-        //generate session
-        const sessionToken = generateSessionToken();
-        const tokenHash = hashToken(sessionToken);
-        const now = Date.now(); //return number which are milliseconds
-        const expiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000);
-        const absoluteExpiry = new Date(now + 30 * 24 * 60 * 60 * 1000);
-
-        const token = {
-          tokenHash,
-          userId: user.id,
-          expiresAt,
-          absoluteExpiry,
-        };
-        const session = await sessionRepository.create(token);
-
-        //generate jwt
-        const accessToken = generateAccessToken({
-          userId: user.id,
-          sessionId: session.id,
-        });
-        //delete otp data from db
-        await otpRepository.deleteByEmail(storeOtp.email);
-        return {
-          user,
-          accessToken,
-          sessionToken,
-        };
+      const user = await userRepository.fetchByEmail(storeOtp.email);
+      if (!user) {
+        throw new Error("User not found");
       }
-      throw new Error("Invalid request. Please try again.");
+
+      await otpRepository.deleteByEmail(storeOtp.email);
+      const { sessionToken, accessToken } = await this._createSessionForUser(user.id);
+
+      return {
+        user,
+        accessToken,
+        sessionToken,
+      };
     } catch (error) {
       console.log("Something went wrong in the service layer.");
       throw error;
@@ -157,10 +156,9 @@ class AuthService{
         throw new Error("Session exceeded maximum lifetime");
       }
 
-      // rotate session token
       const newSessionToken = generateSessionToken();
       const newHash = hashToken(newSessionToken);
-      const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const newExpiresAt = new Date(Date.now() + SESSION_ROLLING_DAYS * MS_PER_DAY);
 
       await sessionRepository.update(session.id, {
         tokenHash: newHash,
@@ -207,15 +205,12 @@ class AuthService{
     }
   }
 
-  //forgot password
-
-  //generate and send otp
   async sendOtp(email) {
     try {
       const otp = generateOtp();
       const otpHash = hashToken(String(otp));
       const now = Date.now();
-      const expiresAt = new Date(now + 2 * 60 * 1000);
+      const expiresAt = new Date(now + OTP_EXPIRY_MINUTES * MS_PER_MINUTE);
       const otpData = {
         otpHash,
         expiresAt,
@@ -245,34 +240,13 @@ class AuthService{
     }
   }
 
-  //verify otp
   async verifyOtp(data) {
     try {
       const { otpId, otp } = data;
-      const hashOtp = hashToken(String(otp));
-      const storeOtp = await otpRepository.fetch(otpId);
-
-      if (storeOtp) {
-        const attempts = storeOtp.attemptCount;
-        const isExpired = new Date() > storeOtp.expiresAt;
-        if (isExpired) {
-          await otpRepository.deleteByEmail(storeOtp.email);
-          throw new Error("Expired Otp. Please request otp again.");
-        }
-        if (attempts >= 5){
-          await otpRepository.deleteByEmail(storeOtp.email);
-          throw new Error("Attemp limit reached. Please request otp again.");
-        }
-        if (storeOtp.otpHash !== hashOtp) {
-          await otpRepository.update(otpId, { attemptCount: attempts + 1 });
-          throw new Error("Wrong Otp. Please type correct Otp.");
-        }
-        const resetToken = generateResetToken(storeOtp.email);
-        await otpRepository.deleteByEmail(storeOtp.email);
-
-        return resetToken;
-      }
-      throw new Error("Invalid request. Please try again.");
+      const storeOtp = await this._verifyOtp(otpId, otp);
+      const resetToken = generateResetToken(storeOtp.email);
+      await otpRepository.deleteByEmail(storeOtp.email);
+      return resetToken;
     } catch (error) {
       console.log("Something went wrong in the service layer.");
       throw error;

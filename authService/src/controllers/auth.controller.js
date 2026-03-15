@@ -1,21 +1,19 @@
 const authService = require("../services/auth.service");
+const { getSessionCookieOptions } = require("../config/serverConfig");
+
+const SESSION_COOKIE_NAME = "sessionToken";
 
 const login = async (req, res) => {
   try {
     const result = await authService.login(req.body);
-    res.cookie("sessionToken", result.sessionToken, {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: false, //for development it is set as false
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie(SESSION_COOKIE_NAME, result.sessionToken, getSessionCookieOptions());
     return res.status(200).json({
       message: "Login successful",
       data: {
         id: result.user.id,
         email: result.user.email,
       },
-      successToken: result.accessToken,
+      accessToken: result.accessToken,
     });
   } catch (error) {
     console.log(error);
@@ -28,9 +26,9 @@ const login = async (req, res) => {
   }
 };
 
-const refresh = async(req, res)=>{
+const refresh = async (req, res) => {
   try {
-    const sessionToken = req.cookies.sessionToken;
+    const sessionToken = req.cookies[SESSION_COOKIE_NAME];
 
     if (!sessionToken) {
       return res.status(401).json({
@@ -40,12 +38,7 @@ const refresh = async(req, res)=>{
 
     const result = await authService.refresh(sessionToken);
 
-    res.cookie("sessionToken", result.newSessionToken, {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: false,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie(SESSION_COOKIE_NAME, result.newSessionToken, getSessionCookieOptions());
 
     return res.status(200).json({
       accessToken: result.accessToken,
@@ -58,9 +51,9 @@ const refresh = async(req, res)=>{
   }
 }
 
-const logout = async(req, res)=>{
+const logout = async (req, res) => {
   try {
-    const sessionToken = req.cookies.sessionToken;
+    const sessionToken = req.cookies[SESSION_COOKIE_NAME];
 
     if (!sessionToken) {
       return res.status(401).json({
@@ -69,7 +62,7 @@ const logout = async(req, res)=>{
     }
 
     await authService.logout(sessionToken);
-    res.clearCookie("sessionToken");
+    res.clearCookie(SESSION_COOKIE_NAME);
 
     return res.status(200).json({
       success: true,
@@ -84,10 +77,10 @@ const logout = async(req, res)=>{
   }
 }
 
-const logoutFromOtherDevices =  async (req, res) => {
+const logoutFromOtherDevices = async (req, res) => {
   try {
     await authService.logoutFromOtherDevices(req.jwtPayload);
-    res.clearCookie("sessionToken");
+    res.clearCookie(SESSION_COOKIE_NAME);
     
     return res.status(200).json({
       success: true,
@@ -145,11 +138,7 @@ const verifyLoginOtp = async (req, res) => {
   try {
     const result = await authService.loginWithOtp(req.body);
 
-    res.cookie("sessionToken", result.sessionToken, {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: false
-    });
+    res.cookie(SESSION_COOKIE_NAME, result.sessionToken, getSessionCookieOptions());
 
     return res.status(200).json({
       success: true,
