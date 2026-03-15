@@ -79,7 +79,7 @@ class AuthService{
     try {
       //verify otp
       const { otpId, otp } = data;
-      const hashOtp = hashToken(toString(otp));
+      const hashOtp = hashToken(String(otp));
       const storeOtp = await otpRepository.fetch(otpId);
 
       if (storeOtp) {
@@ -213,7 +213,7 @@ class AuthService{
   async sendOtp(email) {
     try {
       const otp = generateOtp();
-      const otpHash = hashToken(toString(otp));
+      const otpHash = hashToken(String(otp));
       const now = Date.now();
       const expiresAt = new Date(now + 2 * 60 * 1000);
       const otpData = {
@@ -249,7 +249,7 @@ class AuthService{
   async verifyOtp(data) {
     try {
       const { otpId, otp } = data;
-      const hashOtp = hashToken(toString(otp));
+      const hashOtp = hashToken(String(otp));
       const storeOtp = await otpRepository.fetch(otpId);
 
       if (storeOtp) {

@@ -23,7 +23,6 @@ const registerUser = async (req, res) => {
 
 const changePassword = async (req, res) => {
   try {
-    console.log(req.jwtPayload);
     await userService.changePassword(req.jwtPayload.userId,req.body);
     res.clearCookie("sessionToken");
     return res.status(200).json({

@@ -11,7 +11,7 @@ router.post("/logout",authController.logout);
 router.post("/change-password-using-token",resetPasswordAuth, authController.resetPasswordUsingToken);
 router.post("/logoutFromOtherDevices",authMiddleware, authController.logoutFromOtherDevices);
 router.post("/sendOtp",attemptLimiter, authController.sendOtp);
-router.post("/verifyOtp",authController.verifyOtp);
+router.post("/verifyOtp", authController.verifyOtp);
 router.post("/loginWithOtp",authController.verifyLoginOtp);
 
 // router.get("/testing", authMiddleware, (req, res) => {

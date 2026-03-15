@@ -1,4 +1,5 @@
 const { Session } = require("../models/index");
+const { Op } = require("sequelize");
 
 class SessionRepository {
   async create(data) {
@@ -53,7 +54,7 @@ class SessionRepository {
       return await Session.destroy({
         where: {
           userId,
-          sessionId: { [Op.ne]: currentSessionId }, // Op.ne = "not equal"
+          id: { [Op.ne]: currentSessionId }, // Op.ne = "not equal"
         },
       });
     } catch (error) {
@@ -66,6 +67,17 @@ class SessionRepository {
     try {
       return await Session.destroy({
         where: { tokenHash },
+      });
+    } catch (error) {
+      console.log("something went wrong in the repository layer");
+      throw error;
+    }
+  }
+
+  async deleteByUserId(userId) {
+    try {
+      return await Session.destroy({
+        where: { userId },
       });
     } catch (error) {
       console.log("something went wrong in the repository layer");
