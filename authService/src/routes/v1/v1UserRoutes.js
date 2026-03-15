@@ -11,9 +11,10 @@ router.post("/refresh",userController.refresh);
 router.post("/logout",userController.logout);
 router.post("/change-password",authMiddleware, userController.changePassword);
 router.post("/change-password-using-token",resetPasswordAuth, userController.resetPasswordUsingToken);
-router.post("/logoutFromAllDevice",userController.logoutFromAllDevices);
+router.post("/logoutFromOtherDevices",authMiddleware, userController.logoutFromOtherDevices);
 router.post("/sendOtp",attemptLimiter, userController.sendOtp);
 router.post("/verifyOtp",userController.verifyOtp);
+router.post("/loginWithOtp",userController.verifyLoginOtp);
 router.delete("/:id", userController.deleteUser);
 router.patch("/:id", userController.updateUser);
 // router.get("/testing", authMiddleware, (req, res) => {

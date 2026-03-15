@@ -104,17 +104,9 @@ async function logout(req, res) {
   }
 }
 
-async function logoutFromAllDevices(req, res) {
+async function logoutFromOtherDevices(req, res) {
   try {
-    const sessionToken = req.cookies.sessionToken;
-
-    if (!sessionToken) {
-      return res.status(401).json({
-        message: "Session token missing",
-      });
-    }
-
-    await userService.logoutFromAllDevices(sessionToken);
+    await userService.logoutFromOtherDevices(req.jwtPayload);
     res.clearCookie("sessionToken");
     
     return res.status(200).json({
@@ -185,6 +177,31 @@ const verifyOtp = async (req, res) => {
       message: "Something went wrong in the User controller",
       error: error.message,
     });
+  }
+};
+
+const verifyLoginOtp = async (req, res) => {
+  try {
+    const result = await userService.loginWithOtp(req.body);
+
+    res.cookie("sessionToken", result.sessionToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: false
+    });
+
+    return res.status(200).json({
+      success: true,
+      accessToken: result.accessToken
+    });
+
+  } catch (error) {
+
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+
   }
 };
 
@@ -279,9 +296,10 @@ module.exports = {
   login,
   logout,
   refresh,
-  logoutFromAllDevices,
+  logoutFromOtherDevices,
   changePassword,
   sendOtp,
   verifyOtp,
-  resetPasswordUsingToken
+  resetPasswordUsingToken,
+  verifyLoginOtp
 };

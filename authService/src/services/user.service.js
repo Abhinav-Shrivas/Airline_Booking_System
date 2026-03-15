@@ -85,6 +85,68 @@ class UserService {
     }
   }
 
+  //login with otp
+  async loginWithOtp(data) {
+    try {
+      //verify otp
+      const { otpId, otp } = data;
+      const hashOtp = hashToken(toString(otp));
+      const storeOtp = await otpRepository.fetch(otpId);
+
+      if (storeOtp) {
+        const user = await userRepository.fetchByEmail(storeOtp.email);
+        const attempts = storeOtp.attemptCount;
+        const isExpired = new Date() > storeOtp.expiresAt;
+        if (isExpired) {
+          await otpRepository.deleteByEmail(storeOtp.email);
+          throw new Error("Expired Otp. Please request otp again.");
+        }
+        if (attempts >= 5){
+          await otpRepository.deleteByEmail(storeOtp.email);
+          throw new Error("Attemp limit reached. Please request otp again.");
+        }
+        if (storeOtp.otpHash !== hashOtp) {
+          await otpRepository.update(otpId, { attemptCount: attempts + 1 });
+          throw new Error("Wrong Otp. Please type correct Otp.");
+        }
+        if (!user) {
+          throw new Error("User not found");
+        }
+        //generate session
+        const sessionToken = generateSessionToken();
+        const tokenHash = hashToken(sessionToken);
+        const now = Date.now(); //return number which are milliseconds
+        const expiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000);
+        const absoluteExpiry = new Date(now + 30 * 24 * 60 * 60 * 1000);
+
+        const token = {
+          tokenHash,
+          userId: user.id,
+          expiresAt,
+          absoluteExpiry,
+        };
+        const session = await sessionRepository.create(token);
+
+        //generate jwt
+        const accessToken = generateAccessToken({
+          userId: user.id,
+          sessionId: session.id,
+        });
+        //delete otp data from db
+        await otpRepository.deleteByEmail(storeOtp.email);
+        return {
+          user,
+          accessToken,
+          sessionToken,
+        };
+      }
+      throw new Error("Invalid request. Please try again.");
+    } catch (error) {
+      console.log("Something went wrong in the service layer.");
+      throw error;
+    }
+  }
+
   //refresh
   async refresh(sessionToken) {
     try {
@@ -144,13 +206,11 @@ class UserService {
     }
   }
 
-  //logoutFromAllDevices
-  async logoutFromAllDevices(sessionToken) {
+  //logoutFromOtherDevices
+  async logoutFromOtherDevices(jwtPayload) {
     try {
-      const tokenHash = hashToken(sessionToken);
-      const session = await sessionRepository.fetchByToken(tokenHash);
-      if (!session) return true; //logout multiple times is still success.
-      await sessionRepository.deleteByUserId(session.userId);
+      const { userId, sessionId } = jwtPayload;
+      await sessionRepository.deleteOtherSessions(userId, sessionId);
       return true;
     } catch (error) {
       console.log("Something went wrong in the service layer.");
@@ -232,10 +292,14 @@ class UserService {
       if (storeOtp) {
         const attempts = storeOtp.attemptCount;
         const isExpired = new Date() > storeOtp.expiresAt;
-        if (isExpired)
+        if (isExpired) {
+          await otpRepository.deleteByEmail(storeOtp.email);
           throw new Error("Expired Otp. Please request otp again.");
-        if (attempts >= 5)
-          throw new Error("Attemp limit reached. Please quest otp again.");
+        }
+        if (attempts >= 5){
+          await otpRepository.deleteByEmail(storeOtp.email);
+          throw new Error("Attemp limit reached. Please request otp again.");
+        }
         if (storeOtp.otpHash !== hashOtp) {
           await otpRepository.update(otpId, { attemptCount: attempts + 1 });
           throw new Error("Wrong Otp. Please type correct Otp.");
@@ -253,7 +317,7 @@ class UserService {
   }
 
   // change password using temporary access token
-    async changePasswordWithToken(email, newPassword) {
+  async changePasswordWithToken(email, newPassword) {
     try {
       const user = await userRepository.fetchByEmail(email);
       await userRepository.update(user.id, { password: newPassword });

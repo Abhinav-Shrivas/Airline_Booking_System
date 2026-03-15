@@ -48,10 +48,13 @@ class SessionRepository {
     }
   }
 
-  async deleteByUserId(userId) {
+  async deleteOtherSessions(userId, currentSessionId) {
     try {
-     return await Session.destroy({
-        where: { userId },
+      return await Session.destroy({
+        where: {
+          userId,
+          sessionId: { [Op.ne]: currentSessionId }, // Op.ne = "not equal"
+        },
       });
     } catch (error) {
       console.log("something went wrong in the repository layer");
@@ -61,7 +64,7 @@ class SessionRepository {
 
   async deleteByTokenHash(tokenHash) {
     try {
-     return await Session.destroy({
+      return await Session.destroy({
         where: { tokenHash },
       });
     } catch (error) {
