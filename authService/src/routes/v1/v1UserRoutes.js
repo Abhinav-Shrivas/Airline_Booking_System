@@ -3,7 +3,6 @@ const router = express.Router();
 const userController = require("../../controllers/user.controller");
 const authMiddleware = require("../../middlewares/auth-middleware");
 
-router.post("/register",userController.registerUser);
 router.post("/change-password",authMiddleware, userController.changePassword);
 router.delete("/:id", userController.deleteUser);
 router.patch("/:id", userController.updateUser);

@@ -3,6 +3,37 @@ const { getSessionCookieOptions } = require("../config/serverConfig");
 
 const SESSION_COOKIE_NAME = "sessionToken";
 
+const registerUser = async (req, res) => {
+  try {
+    const result = await authService.register(req.body);
+    res.cookie(SESSION_COOKIE_NAME, result.sessionToken, getSessionCookieOptions());
+    return res.status(201).json({
+      message: "Successfully register the user.",
+      data: {
+        id: result.user.id,
+        name : result.user.name,
+        email: result.user.email,
+      },
+      accessToken: result.accessToken,
+    });
+  } catch (error) {
+    console.log(error);
+    if (error.message === "User already exists. Please sign in.") {
+        return res.status(409).json({   // Or 400 Bad Request
+            success: false,
+            message: error.message,
+            error: {}
+        });
+    }
+    return res.status(500).json({
+      data: {},
+      success: false,
+      message: "Something went wrong in the User controller",
+      error: error.message,
+    });
+  }
+};
+
 const login = async (req, res) => {
   try {
     const result = await authService.login(req.body);
@@ -11,6 +42,7 @@ const login = async (req, res) => {
       message: "Login successful",
       data: {
         id: result.user.id,
+        name : result.user.name,
         email: result.user.email,
       },
       accessToken: result.accessToken,
@@ -181,6 +213,7 @@ const resetPasswordUsingToken = async (req, res) => {
 
 module.exports = {
   login,
+  registerUser,
   logout,
   refresh,
   logoutFromOtherDevices,

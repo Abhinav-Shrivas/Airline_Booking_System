@@ -13,7 +13,6 @@ class UserRepository {
 
   async fetch(id) {
     try {
-      console.log("inside fetch function",id);
       const response = await User.findByPk(id);
       return response;
     } catch (error) {

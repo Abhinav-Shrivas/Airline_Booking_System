@@ -76,6 +76,26 @@ class AuthService {
     return storeOtp;
   }
 
+    //register
+  async register(data) {
+    try {
+      const response = await userRepository.fetchByEmail(data.email);
+      if(response){
+        throw new Error("User already exists. Please sign in.");
+      }
+      const user = await userRepository.create(data);
+      const { sessionToken, accessToken } = await this._createSessionForUser(user.id);
+      return {
+        user,
+        accessToken,
+        sessionToken,
+      };
+    } catch (error) {
+      console.log("Something went wrong in the service layer.");
+      throw error;
+    }
+  }
+
   async login(data) {
     try {
       const { email, password } = data;

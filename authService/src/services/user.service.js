@@ -6,16 +6,6 @@ const userRepository = new UserRepository();
 const sessionRepository = new SessionRepository();
 
 class UserService {
-  //register
-  async register(data) {
-    try {
-      const response = await userRepository.create(data);
-      return response;
-    } catch (error) {
-      console.log("Something went wrong in the service layer.");
-      throw error;
-    }
-  }
   //changePassword when user knows his/her old password
   async changePassword(userId, data) {
     try {

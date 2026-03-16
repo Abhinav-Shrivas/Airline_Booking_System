@@ -1,26 +1,5 @@
 const userService = require("../services/user.service");
 
-const registerUser = async (req, res) => {
-  try {
-    const data = await userService.register(req.body);
-    return res.status(201).json({
-      data: data,
-      success: true,
-      message: "Successfully created the User",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the User controller",
-      error: error.message,
-    });
-  }
-};
-
-
 const changePassword = async (req, res) => {
   try {
     await userService.changePassword(req.jwtPayload.userId,req.body);
@@ -102,7 +81,6 @@ const deleteUser = async (req, res) => {
 };
 
 module.exports = {
-  registerUser,
   fetchUser,
   updateUser,
   deleteUser,

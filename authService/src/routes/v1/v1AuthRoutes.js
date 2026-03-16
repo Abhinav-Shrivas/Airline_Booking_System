@@ -5,6 +5,7 @@ const attemptLimiter = require("../../middlewares/attempt-rate-limit");
 const resetPasswordAuth = require("../../middlewares/verify-reset-token");
 const authMiddleware = require("../../middlewares/auth-middleware");
 
+router.post("/register",authController.registerUser);
 router.post("/login",attemptLimiter, authController.login);
 router.post("/refresh",authController.refresh);
 router.post("/logout",authController.logout);
