@@ -1,13 +1,43 @@
 const { User, Role } = require("../models/index");
 
 class UserRepository {
-  async create(data) {
+  // add role as "USER to be default"
+  async create(data, roleName = "USER") {
     try {
       const user = await User.create(data);
-      // add role as "USER to be default"
-      const role = await Role.findOne({ where: { name: "USER" } });
+      const role = await Role.findOne({ where: { name: roleName } });
+      if (!role) throw new Error("Invalid role name.");
       await user.addRole(role);
       return user;
+    } catch (error) {
+      console.log("something went wrong in the repository layer");
+      throw error;
+    }
+  }
+  async assignRole(email, roleName) {
+    try {
+      const user = await User.findOne({
+        where: { email },
+      });
+      const role = await Role.findOne({ where: { name: roleName } });
+      if (!role) throw new Error("Invalid role name.");
+      await user.addRole(role);
+      return true;
+    } catch (error) {
+      console.log("something went wrong in the repository layer");
+      throw error;
+    }
+  }
+
+  async updateRole(email, roleName) {
+    try {
+      const user = await User.findOne({
+        where: { email },
+      });
+      const role = await Role.findOne({ where: { name: roleName } });
+      if (!role) throw new Error("Invalid role name.");
+      await user.setRoles([role]);
+      return true;
     } catch (error) {
       console.log("something went wrong in the repository layer");
       throw error;

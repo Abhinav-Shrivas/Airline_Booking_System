@@ -63,6 +63,41 @@ class UserService {
       throw error;
     }
   }
+
+  //assign role
+  async assignRole(data) {
+    try {
+      const { email, roleName } = data;
+      const user = await userRepository.fetchByEmail(email);
+      if(!user){
+        throw new Error("User not exists.")
+      }
+      const roles = user.roles.map(r => r.name);
+      const hasRoleAlreadyAssigned = roles.includes(roleName);
+      if(hasRoleAlreadyAssigned) throw new Error("User is already assigned with the role.");
+
+      const response = await userRepository.assignRole(email,roleName);
+      return response;
+    } catch (error) {
+      console.log("Something went wrong in the service layer.");
+      throw error;
+    }
+  }
+
+  async updateRole(data) {
+    try {
+      const { email, roleName } = data;
+      const user = await userRepository.fetchByEmail(email);
+      if(!user){
+        throw new Error("User not exists.")
+      }
+      const response = await userRepository.updateRole(email,roleName);
+      return response;
+    } catch (error) {
+      console.log("Something went wrong in the service layer.");
+      throw error;
+    }
+  }
 }
 
 module.exports = new UserService();
