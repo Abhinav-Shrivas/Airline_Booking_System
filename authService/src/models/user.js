@@ -1,6 +1,6 @@
 "use strict";
 const { Model } = require("sequelize");
-const {hashPassword} = require("../utils/password")
+const { hashPassword } = require("../utils/password");
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     /**
@@ -10,9 +10,15 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      this.hasMany(models.Session,{
-        foreignKey : "userId",
-      })
+      this.hasMany(models.Session, {
+        foreignKey: "userId",
+      });
+      this.belongsToMany(models.Role, {
+        through: "user_roles",
+        foreignKey: "user_id",
+        otherKey: "role_id",
+        as: "roles",
+      });
     }
   }
   User.init(
@@ -44,7 +50,7 @@ module.exports = (sequelize, DataTypes) => {
       //Hashes the password before saving to the db
       hooks: {
         beforeSave: async (user, options) => {
-          if(user.changed("password")){
+          if (user.changed("password")) {
             const plainPassword = user.password;
             user.password = await hashPassword(plainPassword);
           }

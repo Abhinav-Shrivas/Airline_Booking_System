@@ -147,9 +147,9 @@ const sendOtp = async (req, res) => {
   }
 };
 
-const verifyOtp = async (req, res) => {
+const verifyOtpAndGetResetToken = async (req, res) => {
   try {
-    const resetToken = await authService.verifyOtp(req.body);
+    const resetToken = await authService.verifyOtpAndGetResetToken(req.body);
     return res.status(200).json({
       success: true,
       resetToken,
@@ -166,7 +166,7 @@ const verifyOtp = async (req, res) => {
   }
 };
 
-const verifyLoginOtp = async (req, res) => {
+const loginWithOtp = async (req, res) => {
   try {
     const result = await authService.loginWithOtp(req.body);
 
@@ -218,7 +218,7 @@ module.exports = {
   refresh,
   logoutFromOtherDevices,
   sendOtp,
-  verifyOtp,
+  verifyOtpAndGetResetToken,
   resetPasswordUsingToken,
-  verifyLoginOtp
+  loginWithOtp
 };

@@ -27,7 +27,7 @@ const MS_PER_MINUTE = 60 * 1000;
 
 class AuthService {
   /** Creates a new session for the user and returns session token + access token. */
-  async _createSessionForUser(userId) {
+  async _createSessionForUser(userId,roles) {
     const sessionToken = generateSessionToken();
     const tokenHash = hashToken(sessionToken);
     const now = Date.now();
@@ -44,9 +44,10 @@ class AuthService {
     const accessToken = generateAccessToken({
       userId,
       sessionId: session.id,
+      roles
     });
 
-    return { session, sessionToken, accessToken };
+    return { sessionToken, accessToken };
   }
 
   /** Verifies OTP by id + code; returns stored OTP record or throws. */
@@ -84,7 +85,7 @@ class AuthService {
         throw new Error("User already exists. Please sign in.");
       }
       const user = await userRepository.create(data);
-      const { sessionToken, accessToken } = await this._createSessionForUser(user.id);
+      const { sessionToken, accessToken } = await this._createSessionForUser(user.id, ["USER"]);
       return {
         user,
         accessToken,
@@ -100,7 +101,6 @@ class AuthService {
     try {
       const { email, password } = data;
       const user = await userRepository.fetchByEmail(email);
-
       if (!user) {
         throw new Error("User not found");
       }
@@ -117,13 +117,13 @@ class AuthService {
           await sessionRepository.destroy(sessions[i].id);
         }
       }
-
-      const { sessionToken, accessToken } = await this._createSessionForUser(user.id);
+      const roles = user.roles.map(r => r.name);
+      const { sessionToken, accessToken } = await this._createSessionForUser(user.id,roles);
 
       return {
         user,
         accessToken,
-        sessionToken,
+        sessionToken
       };
     } catch (error) {
       console.log("Something went wrong in the service layer.");
@@ -142,7 +142,8 @@ class AuthService {
       }
 
       await otpRepository.deleteByEmail(storeOtp.email);
-      const { sessionToken, accessToken } = await this._createSessionForUser(user.id);
+      const roles = user.roles.map(r => r.name);
+      const { sessionToken, accessToken } = await this._createSessionForUser(user.id,roles);
 
       return {
         user,
@@ -175,7 +176,8 @@ class AuthService {
       if (now > session.absoluteExpiry) {
         throw new Error("Session exceeded maximum lifetime");
       }
-
+      const user = await userRepository.fetch(session.userId);
+      const roles = user.roles.map(r => r.name);
       const newSessionToken = generateSessionToken();
       const newHash = hashToken(newSessionToken);
       const newExpiresAt = new Date(Date.now() + SESSION_ROLLING_DAYS * MS_PER_DAY);
@@ -189,8 +191,8 @@ class AuthService {
       const accessToken = generateAccessToken({
         userId: session.userId,
         sessionId: session.id,
+        roles
       });
-
       return {
         accessToken,
         newSessionToken,
@@ -260,7 +262,7 @@ class AuthService {
     }
   }
 
-  async verifyOtp(data) {
+  async verifyOtpAndGetResetToken(data) {
     try {
       const { otpId, otp } = data;
       const storeOtp = await this._verifyOtp(otpId, otp);
