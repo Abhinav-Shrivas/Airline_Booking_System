@@ -1,215 +1,131 @@
 const authService = require("../services/auth.service");
 const { getSessionCookieOptions } = require("../config/serverConfig");
+const { asyncHandler, successResponse } = require("shared");
+const {SESSION_COOKIE_NAME} = require("../config/serverConfig");
 
-const SESSION_COOKIE_NAME = "sessionToken";
+const registerUser = asyncHandler(async (req, res) => {
+  const result = await authService.register(req.body);
+  res.cookie(
+    SESSION_COOKIE_NAME,
+    result.sessionToken,
+    getSessionCookieOptions(),
+  );
+  successResponse(res, {
+    message: "Successfully registered the user.",
+    data: {
+      email: result.user.email,
+      accessToken : result.accessToken,
+    },
+    statusCode: 201,
+  });
+});
 
-const registerUser = async (req, res) => {
-  try {
-    const result = await authService.register(req.body);
-    res.cookie(SESSION_COOKIE_NAME, result.sessionToken, getSessionCookieOptions());
-    return res.status(201).json({
-      message: "Successfully register the user.",
-      data: {
-        id: result.user.id,
-        name : result.user.name,
-        email: result.user.email,
-      },
+const login = asyncHandler(async (req, res) => {
+  const result = await authService.login(req.body);
+  res.cookie(
+    SESSION_COOKIE_NAME,
+    result.sessionToken,
+    getSessionCookieOptions(),
+  );
+  successResponse(res, {
+    message: "Login Successful",
+    data: {
+      email: result.user.email,
+      accessToken : result.accessToken,
+    },
+    statusCode: 200,
+  });
+});
+
+const refresh = asyncHandler(async (req, res) => {
+  const result = await authService.refresh(req.sessionToken);
+  res.cookie(
+    SESSION_COOKIE_NAME,
+    result.newSessionToken,
+    getSessionCookieOptions(),
+  );
+
+  successResponse(res, {
+    message: "Successful",
+    data: {
       accessToken: result.accessToken,
-    });
-  } catch (error) {
-    console.log(error);
-    if (error.message === "User already exists. Please sign in.") {
-        return res.status(409).json({   // Or 400 Bad Request
-            success: false,
-            message: error.message,
-            error: {}
-        });
-    }
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the User controller",
-      error: error.message,
-    });
-  }
-};
+    },
+    statusCode: 200,
+  });
+});
 
-const login = async (req, res) => {
-  try {
-    const result = await authService.login(req.body);
-    res.cookie(SESSION_COOKIE_NAME, result.sessionToken, getSessionCookieOptions());
-    return res.status(200).json({
-      message: "Login successful",
-      data: {
-        id: result.user.id,
-        name : result.user.name,
-        email: result.user.email,
-      },
-      accessToken: result.accessToken,
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(401).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the User controller",
-      error: error.message,
-    });
-  }
-};
+const logout = asyncHandler(async (req, res) => {
+  const sessionToken = req.cookies[SESSION_COOKIE_NAME];
+  await authService.logout(sessionToken);
+  res.clearCookie(SESSION_COOKIE_NAME);
 
-const refresh = async (req, res) => {
-  try {
-    const sessionToken = req.cookies[SESSION_COOKIE_NAME];
+  successResponse(res, {
+    message: "Logout Successful",
+    statusCode: 200,
+  });
+});
 
-    if (!sessionToken) {
-      return res.status(401).json({
-        message: "Session token missing",
-      });
-    }
+const logoutFromOtherDevices = asyncHandler(async (req, res) => {
+  await authService.logoutFromOtherDevices(req.jwtPayload);
+  res.clearCookie(SESSION_COOKIE_NAME);
 
-    const result = await authService.refresh(sessionToken);
+  successResponse(res, {
+    message: "Logout Successful",
+    statusCode: 200,
+  });
+});
 
-    res.cookie(SESSION_COOKIE_NAME, result.newSessionToken, getSessionCookieOptions());
+const sendOtp = asyncHandler(async (req, res) => {
+  const response = await authService.sendOtp(req.body.email);
+  successResponse(res, {
+    message: "If the email exists, successfully send the otp.",
+    data: {
+      otpId: response.otpId,
+    },
+    statusCode: 200,
+  });
+});
 
-    return res.status(200).json({
-      accessToken: result.accessToken,
-    });
-  } catch (error) {
-    return res.status(401).json({
-       success: false,
-      error: error.message,
-    });
-  }
-}
-
-const logout = async (req, res) => {
-  try {
-    const sessionToken = req.cookies[SESSION_COOKIE_NAME];
-
-    if (!sessionToken) {
-      return res.status(401).json({
-        message: "Session token missing",
-      });
-    }
-
-    await authService.logout(sessionToken);
-    res.clearCookie(SESSION_COOKIE_NAME);
-
-    return res.status(200).json({
-      success: true,
-      message: "Successfully logout the User.",
-      error: {},
-    });
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      error: error.message,
-    });
-  }
-}
-
-const logoutFromOtherDevices = async (req, res) => {
-  try {
-    await authService.logoutFromOtherDevices(req.jwtPayload);
-    res.clearCookie(SESSION_COOKIE_NAME);
-    
-    return res.status(200).json({
-      success: true,
-      message: "Successfully logout the User from all the devices.",
-      error: {},
-    });
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      error: error.message,
-    });
-  }
-}
-
-
-const sendOtp = async (req, res) => {
-  try {
-    const response = await authService.sendOtp(req.body.email);
-    return res.status(200).json({
-      success: true,
-      otpId : response.otpId,
-      message: "If the email exists, successfully send the otp.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong in the User controller",
-      error: error.message,
-    });
-  }
-};
-
-const verifyOtpAndGetResetToken = async (req, res) => {
-  try {
-    const resetToken = await authService.verifyOtpAndGetResetToken(req.body);
-    return res.status(200).json({
-      success: true,
+const verifyOtpAndGetResetToken = asyncHandler(async (req, res) => {
+  const resetToken = await authService.verifyOtpAndGetResetToken(req.body);
+  successResponse(res, {
+    message: "Otp verified.",
+    data: {
       resetToken,
-      message: "Successfully verified the otp.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong in the User controller",
-      error: error.message,
-    });
-  }
-};
+    },
+    statusCode: 200,
+  });
+});
 
-const loginWithOtp = async (req, res) => {
-  try {
-    const result = await authService.loginWithOtp(req.body);
+const loginWithOtp = asyncHandler(async (req, res) => {
+  const result = await authService.loginWithOtp(req.body);
 
-    res.cookie(SESSION_COOKIE_NAME, result.sessionToken, getSessionCookieOptions());
+  res.cookie(
+    SESSION_COOKIE_NAME,
+    result.sessionToken,
+    getSessionCookieOptions(),
+  );
 
-    return res.status(200).json({
-      success: true,
-      accessToken: result.accessToken
-    });
+  successResponse(res, {
+    message: "Login Successful",
+    data: {
+      accessToken: result.accessToken,
+    },
+    statusCode: 200,
+  });
+});
 
-  } catch (error) {
+const resetPasswordUsingToken = asyncHandler(async (req, res) => {
+  const { newPassword } = req.body;
+  const email = req.resetPayload.email;
 
-    return res.status(400).json({
-      success: false,
-      message: error.message
-    });
+  await authService.changePasswordWithToken(email, newPassword);
 
-  }
-};
-
-const resetPasswordUsingToken = async (req, res) => {
-  try {
-
-    const { newPassword } = req.body;
-    const email = req.resetPayload.email;
-
-    await authService.changePasswordWithToken(email, newPassword);
-
-    return res.status(200).json({
-      success: true,
-      message: "Password reset successful"
-    });
-
-  } catch (error) {
-
-    return res.status(400).json({
-      success: false,
-      message: error.message
-    });
-
-  }
-};
-
+  successResponse(res, {
+    message: "Successfully reset the user password.",
+    statusCode: 200,
+  });
+});
 
 module.exports = {
   login,
@@ -220,5 +136,5 @@ module.exports = {
   sendOtp,
   verifyOtpAndGetResetToken,
   resetPasswordUsingToken,
-  loginWithOtp
+  loginWithOtp,
 };

@@ -1,10 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const adminController = require("../../controllers/admin.controller");
-const authMiddleware = require("../../middlewares/auth-middleware");
-const authorize = require("../../middlewares/authorize");
+const {
+  authMiddleware,
+  authorizeMiddleware
+} = require("../../middlewares/index");
 
-router.post("/assignRole",authMiddleware, authorize("ADMIN"), adminController.assignRole);
-router.patch("/updateRole",authMiddleware, authorize("ADMIN"), adminController.updateRole);
+router.post("/assignRole",authMiddleware, authorizeMiddleware("ADMIN"), adminController.assignRole);
+router.patch("/updateRole",authMiddleware, authorizeMiddleware("ADMIN"), adminController.updateRole);
 
 module.exports = router;

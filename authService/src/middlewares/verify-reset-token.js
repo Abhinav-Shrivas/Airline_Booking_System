@@ -1,35 +1,23 @@
 const { verifyAccessToken } = require("../utils/jwt");
-
-const resetPasswordAuth = async(req, res, next) => {
+const { AppError } = require("shared");
+const resetPasswordAuth = async (req, res, next) => {
   try {
     const resetToken = req.headers.authorization;
     if (!resetToken) {
-      return res.status(400).json({
-        success: false,
-        message: "Reset token required"
-      });
+      throw new AppError("Reset token required.",400);
     }
     const token = resetToken.split(" ")[1];
     const payload = verifyAccessToken(token);
 
     if (payload.purpose !== "password-reset") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid token purpose"
-      });
+      throw new AppError("Invalid Token.", 401);
     }
-
     req.resetPayload = payload;
 
     next();
-
   } catch (error) {
-
-    return res.status(401).json({
-      success: false,
-      message: "Invalid or expired reset token"
-    });
-
+    if(error instanceof AppError)throw error;
+    throw new AppError("Invalid Token.", 401);
   }
 };
 

@@ -1,7 +1,7 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const { PORT } = require("./config/serverConfig");
-const { User, Role } = require('./models');
+const { requestMiddleware, errorMiddleware, logger } = require("shared");
 const apiRoutes = require("./routes/index.js");
 require("./jobs/clean-expired-sessions");
 
@@ -10,10 +10,13 @@ const setAndStartServer = async () => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
-  app.use("/api", apiRoutes);
 
+  app.use(requestMiddleware);
+  app.use("/api", apiRoutes);
+  app.use(errorMiddleware);
+  
   app.listen(PORT, async () => {
-    console.log(`Server running on port : ${PORT}`);
+    logger.info(`Server running on port : ${PORT}`);
   });
 };
 setAndStartServer();

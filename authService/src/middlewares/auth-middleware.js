@@ -1,13 +1,12 @@
 const { verifyAccessToken } = require("../utils/jwt");
+const {AppError} = require("shared");
 
 async function authMiddleware(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      return res.status(401).json({
-        message: "Authorization header missing",
-      });
+      throw new AppError("Authorization header missing", 401);
     }
 
     const token = authHeader.split(" ")[1];
@@ -18,9 +17,8 @@ async function authMiddleware(req, res, next) {
 
     next();
   } catch (error) {
-    return res.status(401).json({
-      message: "Invalid or expired token",
-    });
+    if (error instanceof AppError) throw error;
+    throw new AppError("Invalid or expired token", 401);
   }
 }
 
