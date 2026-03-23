@@ -1,4 +1,4 @@
-const { verifyAccessToken } = require("../utils/jwt");
+const { verifyAccessToken } = require("shared");
 const { AppError } = require("shared");
 const resetPasswordAuth = async (req, res, next) => {
   try {

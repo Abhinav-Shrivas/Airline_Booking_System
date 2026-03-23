@@ -1,5 +1,5 @@
-const { verifyAccessToken } = require("../utils/jwt");
-const {AppError} = require("shared");
+const verifyAccessToken = require("../utils/verifyToken");
+const AppError = require("../errors/appError");
 
 async function authMiddleware(req, res, next) {
   try {

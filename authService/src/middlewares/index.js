@@ -1,6 +1,5 @@
 const attemptLimiter = require("./attempt-rate-limit");
-const authMiddleware = require("./auth-middleware");
-const authorizeMiddleware = require("./authorize");
+const {authMiddleware, authorizeMiddleware} = require("shared");
 const sessionTokenMiddleware = require("./session-token-middleware");
 const verifyResetToken = require("./verify-reset-token");
 

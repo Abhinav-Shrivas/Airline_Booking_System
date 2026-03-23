@@ -1,5 +1,6 @@
 const { FlightRepository, CityRepository } = require("../repositories/index");
 const CrudService = require("../services/crud.service");
+const { AppError } = require("shared");
 
 const flightRepository = new FlightRepository();
 const cityRepository = new CityRepository();
@@ -23,8 +24,8 @@ class FlightService extends CrudService {
       cityRepository.fetch(filters.from),
     ]);
 
-    if (!city1) throw new Error(`City not found: ${filters.to}`);
-    if (!city2) throw new Error(`City not found: ${filters.from}`);
+    if (!city1) throw new AppError(`City not found: ${filters.to}`, 404);
+    if (!city2) throw new AppError(`City not found: ${filters.from}`, 404);
 
     let [arrivingAirportIds, departureAirportIds] = await Promise.all([
       city1.getAirports({
@@ -48,36 +49,33 @@ class FlightService extends CrudService {
       departureAirportIds: departureAirportIds,
       totalSeatsLeft: filters.noOfSeats,
       startDay: new Date(new Date(filters.departureDate).setHours(0, 0, 0, 0)),
-      endDay: new Date(new Date(filters.departureDate).setHours(23, 59, 59, 999)),
+      endDay: new Date(
+        new Date(filters.departureDate).setHours(23, 59, 59, 999),
+      ),
       limit,
       order,
     };
 
-    try {
-      if (!isRoundTrip) {
-        data = await flightRepository.getFlights(newFilters);
-      } else {
-        const returnFilters = {
-          ...newFilters,
-          arrivingAirportIds: departureAirportIds,
-          departureAirportIds: arrivingAirportIds,
-          startDay: new Date(new Date(filters.returnDate).setHours(0, 0, 0, 0)),
-          endDay: new Date(
-            new Date(filters.returnDate).setHours(23, 59, 59, 999),
-          ),
-        };
+    if (!isRoundTrip) {
+      data = await flightRepository.getFlights(newFilters);
+    } else {
+      const returnFilters = {
+        ...newFilters,
+        arrivingAirportIds: departureAirportIds,
+        departureAirportIds: arrivingAirportIds,
+        startDay: new Date(new Date(filters.returnDate).setHours(0, 0, 0, 0)),
+        endDay: new Date(
+          new Date(filters.returnDate).setHours(23, 59, 59, 999),
+        ),
+      };
 
-        const [goingData, returnData] = await Promise.all([
-          flightRepository.getFlights(newFilters),
-          flightRepository.getFlights(returnFilters),
-        ]);
-        data = { goingData, returnData };
-      }
-      return data;
-    } catch (error) {
-      console.log("Something went wrong in the service layer.");
-      throw error;
+      const [goingData, returnData] = await Promise.all([
+        flightRepository.getFlights(newFilters),
+        flightRepository.getFlights(returnFilters),
+      ]);
+      data = { goingData, returnData };
     }
+    return data;
   }
 }
 

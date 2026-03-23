@@ -1,4 +1,4 @@
-const {AppError} = require("shared");
+const AppError = require("../errors/appError");
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     const userRoles = req.jwtPayload.roles;

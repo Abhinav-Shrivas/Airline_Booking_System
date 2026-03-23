@@ -1,3 +1,4 @@
 node_modules/
+logs/
 .env
 code_review.md

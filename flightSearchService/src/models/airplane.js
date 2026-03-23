@@ -18,6 +18,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       modelNo: {
         type: DataTypes.STRING,
+        allowNull : false
       },
       capacity: {
         type: DataTypes.INTEGER,
