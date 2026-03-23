@@ -1,87 +1,42 @@
-const {AirportService} = require('../services/index');
-const createAirport = async (req, res) => {
-  try {
-    const data = await AirportService.create(req.body);
-    return res.status(201).json({
-      data: data,
-      success: true,
-      message: "Successfully created the Airport",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the Airport controller",
-      error: error,
-    });
-  }
-};
+const { AirportService } = require("../services/index");
+const { asyncHandler, successResponse } = require("shared");
 
-const fetchAirport = async (req, res) => {
-  try {
-    const data = await AirportService.fetch(req.params.id);
-    return res.status(200).json({
-      data: data,
-      success: true,
-      message: "Successfully fetched the Airport.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the Airport controller",
-      error: error,
-    });
-  }
-};
+const createAirport = asyncHandler(async (req, res) => {
+  const data = await AirportService.create(req.body);
+  successResponse(res, {
+    data,
+    message: "Successfully created the Airport.",
+    statusCode: 201,
+  });
+});
 
-const updateAirport = async (req, res) => {
-  try {
-    const data = await AirportService.update(req.params.id,req.body);
-    return res.status(200).json({
-      data: data,
-      success: true,
-      message: "Successfully updated the Airport.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the Airport controller",
-      error: error,
-    });
-  }
-};
+const fetchAirport = asyncHandler(async (req, res) => {
+  const data = await AirportService.fetch(req.params.id);
+  successResponse(res, {
+    data,
+    message: "Successfully fetched the Airport.",
+  });
+});
 
-const deleteAirport = async (req, res) => {
-  try {
-    const data = await AirportService.destroy(req.params.id);
-    return res.status(200).json({
-      data: data,
-      success: true,
-      message: "Successfully deleted the Airport.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the Airport controller.",
-      error: error,
-    });
-  }
-};
+const updateAirport = asyncHandler(async (req, res) => {
+  const data = await AirportService.update(req.params.id, req.body);
+  successResponse(res, {
+    data,
+    message: "Successfully updated the Airport.",
+  });
+});
+
+const deleteAirport = asyncHandler(async (req, res) => {
+  const data = await AirportService.destroy(req.params.id);
+  successResponse(res, {
+    data,
+    message: "Successfully deleted the Airport.",
+  });
+});
 
 module.exports = {
-    createAirport,
-    fetchAirport,
-    updateAirport,
-    deleteAirport
-}
+  createAirport,
+  fetchAirport,
+  updateAirport,
+  deleteAirport,
+};

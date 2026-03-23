@@ -1,87 +1,43 @@
-const {AirplaneService} = require('../services/index');
-const createAirplane = async (req, res) => {
-  try {
-    const data = await AirplaneService.create(req.body);
-    return res.status(201).json({
-      data: data,
-      success: true,
-      message: "Successfully created the Airplane",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the Airplane controller",
-      error: error,
-    });
-  }
-};
+const { AirplaneService } = require("../services/index");
+const { asyncHandler, successResponse } = require("shared");
 
-const fetchAirplane = async (req, res) => {
-  try {
-    const data = await AirplaneService.fetch(req.params.id);
-    return res.status(200).json({
-      data: data,
-      success: true,
-      message: "Successfully fetched the Airplane.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the Airplane controller",
-      error: error,
-    });
-  }
-};
+const createAirplane = asyncHandler(async (req, res) => {
+  const data = await AirplaneService.create(req.body);
+  successResponse(res, {
+    data: data,
+    message: "Successfully created the Airplane",
+    statusCode: 200,
+  });
+});
 
-const updateAirplane = async (req, res) => {
-  try {
-    const data = await AirplaneService.update(req.params.id,req.body);
-    return res.status(200).json({
-      data: data,
-      success: true,
-      message: "Successfully updated the Airplane.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the Airplane controller",
-      error: error,
-    });
-  }
-};
+const fetchAirplane = asyncHandler(async (req, res) => {
+  const data = await AirplaneService.fetch(req.params.id);
+  successResponse(res, {
+    data: data,
+    message: "Successfully fetched the Airplane",
+    statusCode: 200,
+  });
+});
 
-const deleteAirplane = async (req, res) => {
-  try {
-    const data = await AirplaneService.destroy(req.params.id);
-    return res.status(200).json({
-      data: data,
-      success: true,
-      message: "Successfully deleted the Airplane.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the Airplane controller.",
-      error: error,
-    });
-  }
-};
+const updateAirplane = asyncHandler(async (req, res) => {
+  const data = await AirplaneService.update(req.params.id, req.body);
+  successResponse(res, {
+    data,
+    message: "Successfully updated the Airplane.",
+  });
+});
+
+const deleteAirplane = asyncHandler(async (req, res) => {
+  const data = await AirplaneService.destroy(req.params.id);
+  successResponse(res, {
+    data,
+    message: "Successfully deleted the Airplane.",
+  });
+});
 
 module.exports = {
-    createAirplane,
-    fetchAirplane,
-    updateAirplane,
-    deleteAirplane
-}
+  createAirplane,
+  fetchAirplane,
+  updateAirplane,
+  deleteAirplane,
+};

@@ -1,117 +1,59 @@
-const {CityService} = require('../services/index');
+const { CityService } = require("../services/index");
+const { asyncHandler, successResponse } = require("shared");
 
-/* 
+/*
 ✅ Why functions in controllers ?
-Controllers don’t store anything
+Controllers don't store anything
 They just handle request → response
 Each request is independent
 Using a class gives no extra benefit
 */
 
-const createCity = async (req, res) => {
-  try {
-    const data = await CityService.create(req.body);
-    return res.status(201).json({
-      data: data,
-      success: true,
-      message: "Successfully created the city",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the city controller",
-      error: error,
-    });
-  }
-};
+const createCity = asyncHandler(async (req, res) => {
+  const data = await CityService.create(req.body);
+  successResponse(res, {
+    data,
+    message: "Successfully created the City.",
+    statusCode: 201,
+  });
+});
 
-const fetchCity = async (req, res) => {
-  try {
-    const data = await CityService.fetch(req.params.id);
-    return res.status(200).json({
-      data: data,
-      success: true,
-      message: "Successfully fetched the city.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the city controller",
-      error: error,
-    });
-  }
-};
+const fetchCity = asyncHandler(async (req, res) => {
+  const data = await CityService.fetch(req.params.id);
+  successResponse(res, {
+    data,
+    message: "Successfully fetched the City.",
+  });
+});
 
-const getAllCities = async (req,res) => {
-  try {
-    const data = await CityService.getAllCities(req.query.search);
-    return res.status(200).json({
-      data: data,
-      success: true,
-      message: "Successfully fetched all the city.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the city controller",
-      error: error,
-    });
-  }
-}
+const getAllCities = asyncHandler(async (req, res) => {
+  const data = await CityService.getAllCities(req.query.search);
+  successResponse(res, {
+    data,
+    message: "Successfully fetched all cities.",
+  });
+});
 
-const updateCity = async (req, res) => {
-  try {
-    const data = await CityService.update(req.params.id,req.body);
-    return res.status(200).json({
-      data: data,
-      success: true,
-      message: "Successfully updated the city.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the city controller",
-      error: error,
-    });
-  }
-};
+const updateCity = asyncHandler(async (req, res) => {
+  const data = await CityService.update(req.params.id, req.body);
+  successResponse(res, {
+    data,
+    message: "Successfully updated the City.",
+  });
+});
 
-const deleteCity = async (req, res) => {
-  try {
-    const data = await CityService.destroy(req.params.id);
-    return res.status(200).json({
-      data: data,
-      success: true,
-      message: "Successfully deleted the city.",
-      error: {},
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {},
-      success: false,
-      message: "Something went wrong in the city controller.",
-      error: error,
-    });
-  }
-};
+const deleteCity = asyncHandler(async (req, res) => {
+  const data = await CityService.destroy(req.params.id);
+  successResponse(res, {
+    data,
+    message: "Successfully deleted the City.",
+  });
+});
 
 module.exports = {
-    createCity,
-    fetchCity,
-    updateCity,
-    deleteCity,
-    getAllCities
-}
+  createCity,
+  fetchCity,
+  updateCity,
+  deleteCity,
+  getAllCities,
+};
