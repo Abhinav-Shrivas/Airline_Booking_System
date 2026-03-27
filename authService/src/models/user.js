@@ -37,10 +37,20 @@ module.exports = (sequelize, DataTypes) => {
       },
       password: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
         validate: {
           len: [6, 300],
         },
+      },
+      provider: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "local",
+      },
+      googleId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
       },
     },
     {
@@ -50,7 +60,7 @@ module.exports = (sequelize, DataTypes) => {
       //Hashes the password before saving to the db
       hooks: {
         beforeSave: async (user, options) => {
-          if (user.changed("password")) {
+          if (user.password && user.changed("password")) {
             const plainPassword = user.password;
             user.password = await hashPassword(plainPassword);
           }

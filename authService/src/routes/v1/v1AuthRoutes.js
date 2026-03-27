@@ -9,7 +9,7 @@ const {
   verifyResetToken,
 } = require("../../middlewares/index");
 
-const validate = require("shared").validate; 
+const validate = require("shared").validate;
 const schemas = require("../../utils/auth.validation");
 
 // Public routes (rate limited + validated)
@@ -43,6 +43,10 @@ router.post(
   validate(schemas.verifyOtp),
   authController.loginWithOtp,
 );
+
+//oauth google based
+router.get("/google", authController.redirectToGoogle);
+router.get("/google/callback", authController.googleCallback);
 
 // Token-based routes (session/reset token required)
 router.post("/refresh", sessionTokenMiddleware, authController.refresh);

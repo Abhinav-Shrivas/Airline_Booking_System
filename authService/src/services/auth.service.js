@@ -17,6 +17,8 @@ const {
   OTP_EXPIRY_MINUTES,
   OTP_MAX_ATTEMPTS,
 } = require("../config/serverConfig.js");
+
+const { getGoogleTokens, getGoogleUserInfo } = require("../utils/google-oauth");
 const { AppError } = require("shared");
 
 const userRepository = new UserRepository();
@@ -55,7 +57,7 @@ class AuthService {
   async _verifyOtp(otpId, otp) {
     const storeOtp = await otpRepository.fetch(otpId);
     if (!storeOtp) {
-      throw new AppError("Invalid or expired OTP",400);
+      throw new AppError("Invalid or expired OTP", 400);
     }
 
     const attempts = storeOtp.attemptCount;
@@ -63,11 +65,11 @@ class AuthService {
 
     if (isExpired) {
       await otpRepository.deleteByEmail(storeOtp.email);
-      throw new AppError("Invalid or expired OTP",400);
+      throw new AppError("Invalid or expired OTP", 400);
     }
     if (attempts >= OTP_MAX_ATTEMPTS) {
       await otpRepository.deleteByEmail(storeOtp.email);
-      throw new AppError("Too many attempts. Please request a new OTP",429);
+      throw new AppError("Too many attempts. Please request a new OTP", 429);
     }
     const hashOtp = hashToken(String(otp));
     if (storeOtp.otpHash !== hashOtp) {
@@ -100,6 +102,12 @@ class AuthService {
     const user = await userRepository.fetchByEmail(email);
     if (!user) {
       throw new AppError("Invalid email or password", 401);
+    }
+    if (user.provider === "google" && !user.password) {
+      throw new AppError(
+        "This account uses Google login. Please sign in with Google.",
+        400,
+      );
     }
     const isPasswordValid = await comparePassword(password, user.password);
 
@@ -150,6 +158,50 @@ class AuthService {
     };
   }
 
+  async loginWithGoogle(code) {
+    // Google API calls live here now
+    const { access_token } = await getGoogleTokens(code);
+    const googleUser = await getGoogleUserInfo(access_token);
+    const { sub: googleId, email, name } = googleUser;
+
+    let user = await userRepository.fetchByEmail(email);
+
+    if (!user) {
+      // New user — create with Google provider, no password
+      user = await userRepository.create({
+        name,
+        email,
+        password: null,
+        provider: "google",
+        googleId,
+      });
+    } else if (!user.googleId) {
+      // Existing local user logging in with Google for the first time — link accounts
+      await userRepository.update(user.id, { googleId });
+    }
+
+    // Enforce session limits (same logic as login)
+    const sessions = await sessionRepository.findAllSessions(user.id);
+    if (sessions.length >= SESSION_LIMIT_PER_USER) {
+      const sessionsToDelete = sessions.length - 1;
+      for (let i = 0; i < sessionsToDelete; i++) {
+        await sessionRepository.destroy(sessions[i].id);
+      }
+    }
+
+    // For new users, roles aren't loaded on the object — re-fetch to get roles
+    if (!user.roles) {
+      user = await userRepository.fetch(user.id);
+    }
+    const roles = user.roles.map((r) => r.name);
+    const { sessionToken, accessToken } = await this._createSessionForUser(
+      user.id,
+      roles,
+    );
+
+    return { user, accessToken, sessionToken };
+  }
+
   //refresh
   async refresh(sessionToken) {
     const tokenHash = hashToken(sessionToken);
@@ -157,17 +209,17 @@ class AuthService {
     const session = await sessionRepository.fetchByToken(tokenHash);
 
     if (!session) {
-      throw new AppError("Invalid or Expired Session",401);
+      throw new AppError("Invalid or Expired Session", 401);
     }
 
     //checking expiry of session token
     const now = new Date();
     if (now > session.expiresAt) {
-      throw new AppError("Invalid or Expired Session",401);
+      throw new AppError("Invalid or Expired Session", 401);
     }
 
     if (now > session.absoluteExpiry) {
-      throw new AppError("Invalid or Expired Session",401);
+      throw new AppError("Invalid or Expired Session", 401);
     }
     const user = await userRepository.fetch(session.userId);
     const roles = user.roles.map((r) => r.name);
