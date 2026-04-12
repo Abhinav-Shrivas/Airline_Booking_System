@@ -1,8 +1,14 @@
-const { FlightRepository, CityRepository } = require("../repositories/index");
+const {
+  FlightRepository,
+  CityRepository,
+  AirplaneRepository,
+} = require("../repositories/index");
+const { sequelize } = require("../models/index");
 const CrudService = require("../services/crud.service");
 const { AppError } = require("shared");
 
 const flightRepository = new FlightRepository();
+const airplaneRepository = new AirplaneRepository();
 const cityRepository = new CityRepository();
 
 class FlightService extends CrudService {
@@ -55,9 +61,12 @@ class FlightService extends CrudService {
       limit,
       order,
     };
-
     if (!isRoundTrip) {
       data = await flightRepository.getFlights(newFilters);
+      data = data.map((flight) => ({
+        ...flight,
+        totalPrice: flight.price * parseInt(filters.noOfSeats, 10),
+      }));
     } else {
       const returnFilters = {
         ...newFilters,
@@ -73,9 +82,70 @@ class FlightService extends CrudService {
         flightRepository.getFlights(newFilters),
         flightRepository.getFlights(returnFilters),
       ]);
-      data = { goingData, returnData };
+      const seats = parseInt(filters.noOfSeats, 10);
+
+      data = {
+        outboundFlights: goingData.map((f) => ({
+          ...f,
+          totalPrice: f.price * seats,
+        })),
+        returnFlights: returnData.map((f) => ({
+          ...f,
+          totalPrice: f.price * seats,
+        })),
+      };
     }
     return data;
+  }
+
+  async decrementSeats(flightId, count) {
+    // using seatlocking and transaction
+    // await sequelize.transaction(async (t) => {
+    //   const flight = await Flight.findByPk(id, {   //id and noOfSeatsfrom params
+    //     transaction: t,
+    //     lock: t.LOCK.UPDATE,
+    //   });
+
+    //   if (flight.totalSeatsLeft < noOfSeats) {
+    //     throw new AppError("Not enough seats", 409);
+    //   }
+
+    //   await flight.update(
+    //     { totalSeatsLeft: flight.totalSeatsLeft - noOfSeats },
+    //     { transaction: t },
+    //   );
+    // });
+    const affectedRows = await flightRepository.decrementSeats(flightId, count);
+    if (affectedRows === 0) {
+      throw new AppError("Not enough seats available or flight not found", 400);
+    }
+    return true;
+  }
+
+  async incrementSeats(flightId, count) {
+    if (count <= 0) {
+      throw new AppError("Invalid seat count", 400);
+    }
+    return await sequelize.transaction(async (t) => {
+      const flight = await flightRepository.fetch(flightId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      const airplane = await airplaneRepository.fetch(flight.airplane_id, {
+        transaction: t,
+      });
+      const newSeats = parseInt(flight.totalSeatsLeft) + parseInt(count);
+      if (newSeats > airplane.capacity) {
+        throw new AppError("Capacity exceeded", 409);
+      }
+      await flightRepository.update(
+        flightId,
+        { totalSeatsLeft: newSeats },
+        { transaction: t },
+      );
+
+      return { success: true };
+    });
   }
 }
 

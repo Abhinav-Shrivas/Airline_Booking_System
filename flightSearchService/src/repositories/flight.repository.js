@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const { Flight } = require("../models/index");
+const { Flight, sequelize } = require("../models/index");
 const CrudRepository = require("./crud.repository");
 
 class FlightRepository extends CrudRepository {
@@ -7,30 +7,42 @@ class FlightRepository extends CrudRepository {
     super(Flight);
   }
   async getFlights(filters) {
-    try {
-      const response = await Flight.findAll({
-        where: {
-          arrival_airport_id: {
-            [Op.in]: filters.arrivingAirportIds,
-          },
-          departure_airport_id: {
-            [Op.in]: filters.departureAirportIds,
-          },
-          totalSeatsLeft: {
-            [Op.gte]: filters.totalSeatsLeft,
-          },
-          departureTime: {
-            [Op.between]: [filters.startDay, filters.endDay],
-          },
+    const response = await Flight.findAll({
+      where: {
+        arrival_airport_id: {
+          [Op.in]: filters.arrivingAirportIds,
         },
-        limit: filters.limit,
-        order: filters.order,
-      });
-      return response;
-    } catch (error) {
-      console.log("something went wrong in the repository layer");
-      throw error;
-    }
+        departure_airport_id: {
+          [Op.in]: filters.departureAirportIds,
+        },
+        totalSeatsLeft: {
+          [Op.gte]: filters.totalSeatsLeft,
+        },
+        departureTime: {
+          [Op.between]: [filters.startDay, filters.endDay],
+        },
+      },
+      limit: filters.limit,
+      order: filters.order,
+    });
+    return response;
+  }
+
+  async decrementSeats(flightId, count) {
+    const [affectedRows] = await Flight.update(
+      {
+        totalSeatsLeft: sequelize.literal(
+          `totalSeatsLeft - ${parseInt(count)}`,
+        ),
+      },
+      {
+        where: {
+          id: flightId,
+          totalSeatsLeft: { [Op.gte]: count }, // Only if enough seats
+        },
+      },
+    );
+    return affectedRows;
   }
 }
 

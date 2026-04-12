@@ -52,9 +52,24 @@ const deleteFlight = asyncHandler(async (req, res) => {
   });
 });
 
+const updateSeats = asyncHandler(async (req, res) => {
+  const { seatsToDecrement, seatsToIncrement } = req.body;
+  const flightId = req.params.id;
+  if (seatsToDecrement) {
+    await FlightService.decrementSeats(flightId, seatsToDecrement);
+  }
+  if (seatsToIncrement) {
+    await FlightService.incrementSeats(flightId, seatsToIncrement);
+  }
+
+  successResponse(res, { message: "Seats updated successfully." });
+});
+
+
 module.exports = {
   createFlight,
   fetchFlight,
+  updateSeats,
   updateFlight,
   deleteFlight,
   getFlights,

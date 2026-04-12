@@ -175,9 +175,13 @@ class AuthService {
         provider: "google",
         googleId,
       });
-    } else if (!user.googleId) {
-      // Existing local user logging in with Google for the first time — link accounts
-      await userRepository.update(user.id, { googleId });
+    } else {
+      if (!user.googleId) {
+        // Existing local user logging in with Google for the first time — link accounts
+        await userRepository.update(user.id, { googleId });
+      } else if (user.googleId !== googleId) {
+        throw new AppError("Google account mismatch",401);
+      }
     }
 
     // Enforce session limits (same logic as login)

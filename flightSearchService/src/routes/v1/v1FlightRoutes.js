@@ -9,5 +9,6 @@ router.delete("/:id",authMiddleware, authorizeMiddleware("ADMIN"), flightControl
 router.patch("/:id",authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN"), flightController.updateFlight);
 router.get("/:id", flightController.fetchFlight);
 router.get("/", validate(schemas.searchFlights, "query"), flightController.getFlights);
+router.patch("/:id/seats", flightController.updateSeats);
 
 module.exports = router;

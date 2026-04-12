@@ -7,7 +7,7 @@ const requestMiddleware = (req, res, next) => {
   req.id = requestId;
 
   // Log incoming request
-  logger.info({
+  logger.info("Incoming request", {
     requestId,
     method: req.method,
     url: req.originalUrl,
