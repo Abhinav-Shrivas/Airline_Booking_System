@@ -10,7 +10,6 @@ const flightServiceAPI = axios.create({
 
 const getFlightById = async (flightId) => {
   try {
-    console.log("inside the getflight function",flightId);
     const response = await flightServiceAPI.get(`/${flightId}`);
     return response.data.data;
   } catch (error) {

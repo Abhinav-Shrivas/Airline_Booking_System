@@ -1,7 +1,7 @@
 const { PaymentRepository } = require("../repositories");
 const { AppError } = require("shared");
 const mockProvider = require("../utils/mockPaymentProvider");
-
+const { sequelize } = require("../models");
 const paymentRepository = new PaymentRepository();
 
 class PaymentService {
@@ -14,7 +14,7 @@ class PaymentService {
     if (booking.status !== "INITIATED") {
       throw new AppError(
         `Cannot pay for a booking with status: ${booking.status}`,
-        400
+        400,
       );
     }
 
@@ -24,18 +24,22 @@ class PaymentService {
       throw new AppError("Payment already initiated for this booking", 409);
     }
 
-    // 3. Transition booking to PENDING
-    booking.status = "PENDING";
-    await booking.save();
+    // 3. Atomic functions = change booking status to "Pending" and create a payment.
+    const payment = await sequelize.transaction(async (t) => {
+      booking.status = "PENDING";
 
-    // 4. Create payment record
-    const payment = await paymentRepository.create({
-      bookingId,
-      amount: booking.totalCost,
-      status: "PENDING",
-      provider: "MOCK",
+      await booking.save({ transaction: t });
+      const payment = await paymentRepository.create(
+        {
+          bookingId,
+          amount: booking.totalCost,
+          status: "PENDING",
+          gateway: "MOCK",
+        },
+        { transaction: t },
+      );
+      return payment;
     });
-
     // 5. Process payment via mock provider
     const result = await mockProvider.processPayment(booking.totalCost);
 
@@ -102,4 +106,3 @@ class PaymentService {
 }
 
 module.exports = new PaymentService();
-

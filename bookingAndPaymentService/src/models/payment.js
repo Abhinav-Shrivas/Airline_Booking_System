@@ -32,6 +32,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       gateway: { type: DataTypes.STRING, allowNull: false, defaultValue:"MOCK" },
       paidAt: { type: DataTypes.DATE, allowNull: true },
+      transactionId: { type: DataTypes.STRING, allowNull: true, unique: true }
     },
     {
       sequelize,

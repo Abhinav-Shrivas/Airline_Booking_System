@@ -2,8 +2,6 @@ const PaymentService  = require("../services/payment.service");
 const { asyncHandler, successResponse } = require("shared");
 
 const initiatePayment = asyncHandler(async (req, res) => {
-  console.log(req.body.bookingId,
-    req.jwtPayload.userId);
   const data = await PaymentService.initiatePayment(
     req.body.bookingId,
     req.jwtPayload.userId
