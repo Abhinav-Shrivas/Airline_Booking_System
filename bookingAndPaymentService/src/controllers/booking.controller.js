@@ -1,4 +1,4 @@
-const BookingService  = require("../services/booking.service");
+const BookingService = require("../services/booking.service");
 const { asyncHandler, successResponse } = require("shared");
 
 const createBooking = asyncHandler(async (req, res) => {
@@ -6,15 +6,38 @@ const createBooking = asyncHandler(async (req, res) => {
   const data = await BookingService.createBooking(userId, req.body);
   successResponse(res, {
     data,
-    message: "Booking created successfully. Complete payment within 10 minutes.",
+    message:
+      "Booking created successfully. Complete payment within 10 minutes.",
     statusCode: 201,
+  });
+});
+
+const refundBooking = asyncHandler(async (req, res) => {
+  const bookingId = parseInt(req.params.id);
+  const userId = req.jwtPayload.userId;
+  const data = await BookingService.cancelAndRefundBooking(bookingId, userId);
+  successResponse(res, {
+    data,
+    message: "Booking cancelled and refunded successfully.",
+  });
+});
+
+const adminRefundBooking = asyncHandler(async (req, res) => {
+  const bookingId = parseInt(req.params.id);
+  const data = await BookingService.cancelAndRefundBooking(bookingId, null, {
+    skipTimeCheck: true,
+    skipOwnershipCheck: true,
+  });
+  successResponse(res, {
+    data,
+    message: "Booking cancelled and refunded by admin.",
   });
 });
 
 const getBooking = asyncHandler(async (req, res) => {
   const data = await BookingService.getBooking(
     parseInt(req.params.id),
-    req.jwtPayload.userId
+    req.jwtPayload.userId,
   );
   successResponse(res, { data, message: "Booking fetched successfully." });
 });
@@ -30,9 +53,16 @@ const getUserBookings = asyncHandler(async (req, res) => {
 const cancelBooking = asyncHandler(async (req, res) => {
   const data = await BookingService.cancelBooking(
     parseInt(req.params.id),
-    req.jwtPayload.userId
+    req.jwtPayload.userId,
   );
   successResponse(res, { data, message: "Booking cancelled successfully." });
 });
 
-module.exports = { createBooking, getBooking, getUserBookings, cancelBooking };
+module.exports = {
+  createBooking,
+  refundBooking,
+  adminRefundBooking,
+  getBooking,
+  getUserBookings,
+  cancelBooking,
+};

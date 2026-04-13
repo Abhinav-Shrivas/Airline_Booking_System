@@ -1,7 +1,8 @@
 const { BookingRepository } = require("../repositories/index.js");
 const { AppError } = require("shared");
+const { sequelize } = require("../models");
 const flightClient = require("../utils/flightService.client");
-
+const paymentService = require("./payment.service.js");
 const bookingRepository = new BookingRepository();
 
 class BookingService {
@@ -10,7 +11,7 @@ class BookingService {
     if (passengers.length !== noOfSeats) {
       throw new AppError(
         `Passenger count (${passengers.length}) must match seat count (${noOfSeats})`,
-        400
+        400,
       );
     }
 
@@ -21,7 +22,7 @@ class BookingService {
     if (flight.totalSeatsLeft < noOfSeats) {
       throw new AppError(
         `Only ${flight.totalSeatsLeft} seats available, requested ${noOfSeats}`,
-        400
+        400,
       );
     }
 
@@ -33,7 +34,7 @@ class BookingService {
       const totalCost = flight.price * noOfSeats;
       const booking = await bookingRepository.createBookingWithPassengers(
         { userId, flightId, noOfSeats, totalCost, status: "INITIATED" },
-        passengers
+        passengers,
       );
       return booking;
     } catch (error) {
@@ -41,6 +42,57 @@ class BookingService {
       await flightClient.incrementSeats(flightId, noOfSeats);
       throw error;
     }
+  }
+
+  async cancelAndRefundBooking(bookingId, userId, options = {}) {
+    const { skipTimeCheck = false, skipOwnershipCheck = false } = options;
+
+    // Fetch booking — with or without ownership check
+    const booking = skipOwnershipCheck
+      ? await bookingRepository.findByIdWithDetails(bookingId)
+      : await this.getBooking(bookingId, userId);
+
+    if (!booking) throw new AppError("Booking not found", 404);
+
+    if (booking.status !== "CONFIRMED") {
+      throw new AppError(
+        `Cannot refund a booking with status: ${booking.status}`,
+        400,
+      );
+    }
+
+    // Enforce 24-hour rule unless skipped (admin override)
+    if (!skipTimeCheck) {
+      const flight = await flightClient.getFlightById(booking.flightId);
+      const timeUntilDeparture =
+        new Date(flight.departureTime) - new Date();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      if (timeUntilDeparture < oneDayMs) {
+        throw new AppError(
+          "Cannot cancel within 24 hours of departure.",
+          400,
+        );
+      }
+    }
+
+    // 1. Process refund via payment gateway (external call — before any DB changes)
+    const payment = await paymentService.processGatewayRefund(
+      bookingId,
+      booking.userId,
+    );
+
+    // 2. Commit all DB changes atomically
+    await sequelize.transaction(async (t) => {
+      booking.status = "CANCELLED";
+      await booking.save({ transaction: t });
+
+      await paymentService.markPaymentRefunded(payment, { transaction: t });
+    });
+
+    // 3. Release seats back (best-effort)
+    await flightClient.incrementSeats(booking.flightId, booking.noOfSeats);
+
+    return booking;
   }
 
   async getBooking(bookingId, userId) {
@@ -69,7 +121,7 @@ class BookingService {
     if (!["INITIATED", "PENDING"].includes(booking.status)) {
       throw new AppError(
         `Cannot cancel a booking with status: ${booking.status}`,
-        400
+        400,
       );
     }
 

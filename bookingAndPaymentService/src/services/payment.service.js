@@ -1,12 +1,13 @@
 const { PaymentRepository } = require("../repositories");
 const { AppError } = require("shared");
-const bookingService = require("./booking.service");
 const mockProvider = require("../utils/mockPaymentProvider");
 
 const paymentRepository = new PaymentRepository();
 
 class PaymentService {
   async initiatePayment(bookingId, userId) {
+    const bookingService = require("./booking.service");
+
     // 1. Verify booking exists and belongs to user
     const booking = await bookingService.getBooking(bookingId, userId);
 
@@ -58,6 +59,8 @@ class PaymentService {
   }
 
   async getPaymentByBooking(bookingId, userId) {
+    const bookingService = require("./booking.service");
+
     // Verify ownership through booking service
     await bookingService.getBooking(bookingId, userId);
 
@@ -68,7 +71,11 @@ class PaymentService {
     return payment;
   }
 
-  async refundPayment(bookingId, userId) {
+  /**
+   * Step 1: Call payment gateway to process refund (external side-effect).
+   * No DB writes here — safe to call before a transaction.
+   */
+  async processGatewayRefund(bookingId, userId) {
     const payment = await this.getPaymentByBooking(bookingId, userId);
 
     if (payment.status !== "SUCCESS") {
@@ -77,13 +84,22 @@ class PaymentService {
 
     const result = await mockProvider.processRefund(payment.transactionId);
 
-    if (result.success) {
-      payment.status = "REFUNDED";
-      await payment.save();
+    if (!result.success) {
+      throw new AppError("Refund failed at payment gateway", 502);
     }
 
+    return payment;
+  }
+
+  /**
+   * Step 2: Mark payment as REFUNDED in the DB (inside a transaction).
+   */
+  async markPaymentRefunded(payment, { transaction }) {
+    payment.status = "REFUNDED";
+    await payment.save({ transaction });
     return payment;
   }
 }
 
 module.exports = new PaymentService();
+
