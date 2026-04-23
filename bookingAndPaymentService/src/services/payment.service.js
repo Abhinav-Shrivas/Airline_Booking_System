@@ -2,6 +2,7 @@ const { PaymentRepository } = require("../repositories");
 const { AppError } = require("shared");
 const mockProvider = require("../utils/mockPaymentProvider");
 const { sequelize } = require("../models");
+const eventPublisher = require("../utils/eventPublisher");
 const paymentRepository = new PaymentRepository();
 
 class PaymentService {
@@ -56,7 +57,13 @@ class PaymentService {
       await payment.save();
 
       // Fail the booking (releases seats)
+      //Payment failure → triggers both booking.cancelled (via failBooking()) + payment.failed → "Payment declined" email
       await bookingService.failBooking(bookingId);
+      eventPublisher.publish("payment.failed", {
+        bookingId,
+        userId,
+        amount: booking.totalCost,
+      });
     }
 
     return payment;

@@ -3,6 +3,7 @@ const { AppError } = require("shared");
 const { sequelize } = require("../models");
 const flightClient = require("../utils/flightService.client");
 const paymentService = require("./payment.service.js");
+const eventPublisher = require("../utils/eventPublisher");
 const bookingRepository = new BookingRepository();
 
 class BookingService {
@@ -64,14 +65,10 @@ class BookingService {
     // Enforce 24-hour rule unless skipped (admin override)
     if (!skipTimeCheck) {
       const flight = await flightClient.getFlightById(booking.flightId);
-      const timeUntilDeparture =
-        new Date(flight.departureTime) - new Date();
+      const timeUntilDeparture = new Date(flight.departureTime) - new Date();
       const oneDayMs = 24 * 60 * 60 * 1000;
       if (timeUntilDeparture < oneDayMs) {
-        throw new AppError(
-          "Cannot cancel within 24 hours of departure.",
-          400,
-        );
+        throw new AppError("Cannot cancel within 24 hours of departure.", 400);
       }
     }
 
@@ -91,6 +88,13 @@ class BookingService {
 
     // 3. Release seats back (best-effort)
     await flightClient.incrementSeats(booking.flightId, booking.noOfSeats);
+    eventPublisher.publish("booking.refunded", {
+      bookingId,
+      userId: booking.userId,
+      flightId: booking.flightId,
+      noOfSeats: booking.noOfSeats,
+      refundAmount: booking.totalCost,
+    });
 
     return booking;
   }
@@ -110,6 +114,7 @@ class BookingService {
     return await bookingRepository.findByUserId(userId);
   }
 
+  //User-initiated, pre-payment
   async cancelBooking(bookingId, userId) {
     const booking = await bookingRepository.findByIdWithDetails(bookingId);
     if (!booking) {
@@ -131,6 +136,12 @@ class BookingService {
 
     // Release seats back to the flight
     await flightClient.incrementSeats(booking.flightId, booking.noOfSeats);
+    eventPublisher.publish("booking.cancelled", {
+      bookingId,
+      userId: booking.userId,
+      flightId: booking.flightId,
+      noOfSeats: booking.noOfSeats,
+    });
 
     return booking;
   }
@@ -142,9 +153,18 @@ class BookingService {
     booking.status = "CONFIRMED";
     booking.bookedAt = new Date();
     await booking.save();
+    eventPublisher.publish("booking.confirmed", {
+      bookingId,
+      userId: booking.userId,
+      flightId: booking.flightId,
+      noOfSeats: booking.noOfSeats,
+      totalCost: booking.totalCost,
+      bookedAt: booking.bookedAt,
+    });
     return booking;
   }
 
+  //System-initiated, payment failure
   async failBooking(bookingId) {
     const booking = await bookingRepository.fetch(bookingId);
     if (!booking) throw new AppError("Booking not found", 404);
@@ -154,6 +174,12 @@ class BookingService {
 
     // Release seats
     await flightClient.incrementSeats(booking.flightId, booking.noOfSeats);
+    eventPublisher.publish("booking.cancelled", {
+      bookingId,
+      userId: booking.userId,
+      flightId: booking.flightId,
+      noOfSeats: booking.noOfSeats,
+    });
     return booking;
   }
 }
