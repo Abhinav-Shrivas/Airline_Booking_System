@@ -4,6 +4,7 @@ const requestMiddleware = require("./src/middlewares/requestMiddleware");
 const validate = require("./src/middlewares/validate");
 const authMiddleware = require("./src/middlewares/auth-middleware");
 const authorizeMiddleware = require("./src/middlewares/authorize");
+const internalAuthMiddleware = require('./src/middlewares/internalAuthMiddleware');
 const asyncHandler = require("./src/utils/asyncHandler");
 const logger = require("./src/utils/logger");
 const {
@@ -24,6 +25,7 @@ module.exports = {
   validate,
   authMiddleware,
   authorizeMiddleware,
+  internalAuthMiddleware,
   verifyAccessToken,
   connectQueue,
   publishMessage,

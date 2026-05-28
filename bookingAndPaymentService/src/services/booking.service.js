@@ -182,6 +182,41 @@ class BookingService {
     });
     return booking;
   }
+
+  async getUpcomingBookings(hoursUntilDeparture = 24) {
+    // 1. Get all CONFIRMED bookings
+    const confirmedBookings = await bookingRepository.findConfirmedBookings();
+
+    // 2. For each, check if the flight departs within the time window
+    const upcomingBookings = [];
+    for (const booking of confirmedBookings) {
+      try {
+        const flight = await flightClient.getFlightById(booking.flightId);
+        const timeUntilDeparture = new Date(flight.departureTime) - new Date();
+        const windowMs = hoursUntilDeparture * 60 * 60 * 1000;
+
+        if (timeUntilDeparture > 0 && timeUntilDeparture <= windowMs) {
+          upcomingBookings.push({
+            bookingId: booking.id,
+            userId: booking.userId,
+            flightId: booking.flightId,
+            noOfSeats: booking.noOfSeats,
+            flight: {
+              flightNo: flight.flightNo,
+              departureTime: flight.departureTime,
+              arrivalTime: flight.arrivalTime,
+            },
+          });
+        }
+      } catch (error) {
+        logger.error(
+          `Failed to fetch flight for booking #${booking.id}: ${error.message}`,
+        );
+        continue;
+      }
+    }
+    return upcomingBookings;
+  }
 }
 
 module.exports = new BookingService();

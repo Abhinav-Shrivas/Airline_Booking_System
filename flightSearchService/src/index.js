@@ -11,7 +11,7 @@ const setAndStartServer = async () => {
   app.use(requestMiddleware);
   app.use("/api", apiRoutes);
   app.use(errorMiddleware);
-  
+
   app.listen(PORT, async () => {
     logger.info(`Server running on port : ${PORT}`);
   });

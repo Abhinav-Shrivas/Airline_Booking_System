@@ -3,4 +3,5 @@ module.exports = {
     v1AirportRoutes : require('./v1AirportRoutes'),
     v1AirplaneRoutes : require('./v1AirplaneRoutes'),
     v1FlightRoutes : require('./v1FlightRoutes'),
+    v1InternalRoutes : require('./v1InternalRoutes')
 }

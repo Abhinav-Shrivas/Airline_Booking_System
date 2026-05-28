@@ -29,6 +29,12 @@ class BookingRepository extends CrudRepository {
     });
   }
 
+  async findConfirmedBookings() {
+    return await Booking.findAll({
+      where: { status: "CONFIRMED" },
+    });
+  }
+
   async findByUserId(userId) {
     return await Booking.findAll({
       where: { userId },
