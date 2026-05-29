@@ -16,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
           "BOOKING_EXPIRED",
           "PAYMENT_FAILED",
           "DEPARTURE_REMINDER",
+          "REGISTER_SUCCESFUL",
         ),
         allowNull: false,
       },

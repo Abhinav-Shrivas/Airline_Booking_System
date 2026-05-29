@@ -2,6 +2,7 @@ const UserRepository = require("../repositories/user.repository.js");
 const SessionRepository = require("../repositories/session.repository.js");
 const OtpRepository = require("../repositories/otp.repository.js");
 const { comparePassword } = require("../utils/password.js");
+const eventPublisher = require("../utils/eventPublisher.js");
 const {
   generateSessionToken,
   hashToken,
@@ -90,6 +91,9 @@ class AuthService {
       user.id,
       ["USER"],
     );
+    eventPublisher.publish("register.successful", {
+      userId : user.id,
+    });
     return {
       user,
       accessToken,
@@ -180,7 +184,7 @@ class AuthService {
         // Existing local user logging in with Google for the first time — link accounts
         await userRepository.update(user.id, { googleId });
       } else if (user.googleId !== googleId) {
-        throw new AppError("Google account mismatch",401);
+        throw new AppError("Google account mismatch", 401);
       }
     }
 

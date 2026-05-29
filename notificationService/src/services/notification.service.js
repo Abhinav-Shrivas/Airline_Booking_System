@@ -30,23 +30,25 @@ class NotificationService {
       const { subject, html } = emailTemplates.build(eventType, enrichedData);
 
       // 4. Create notification record (PENDING)
-      const notification = await notificationRepository.create({
+      const notificationData = {
         userId: payload.userId,
-        bookingId: payload.bookingId,
         type: this._mapEventToType(eventType),
         recipientEmail: user.email,
         subject,
         status: "PENDING",
-      });
+      };
+      if (eventType !== "register.successful") {
+        notificationData.bookingId = payload.bookingId;
+      }
+      const notification = await notificationRepository.create(notificationData);
 
       // 5. Send email
       try {
         await emailService.send(user.email, subject, html);
         notification.status = "SENT";
         notification.sentAt = new Date();
-        logger.info(
-          `Sent ${eventType} email to ${user.email} for booking #${payload.bookingId}`,
-        );
+        const bookingLog = eventType !== "register.successful" ? ` for booking #${payload.bookingId}` : "";
+        logger.info(`Sent ${eventType} email to ${user.email}${bookingLog}`);
       } catch (emailError) {
         notification.status = "FAILED";
         notification.failReason = emailError.message;
@@ -60,13 +62,16 @@ class NotificationService {
     } catch (error) {
       logger.error(`Failed to handle event ${eventType}: ${error.message}`);
       try {
-        await notificationRepository.create({
+        const failedNotificationData = {
           userId: payload.userId,
-          bookingId: payload.bookingId,
           type: this._mapEventToType(eventType),
           status: "FAILED",
           failReason: error.message,
-        });
+        };
+        if (eventType !== "register.successful") {
+          failedNotificationData.bookingId = payload.bookingId;
+        }
+        await notificationRepository.create(failedNotificationData);
       } catch (dbError) {
         logger.error(`Could not even save failure record: ${dbError.message}`);
         // At this point, only logs have the evidence
@@ -103,6 +108,7 @@ class NotificationService {
       "booking.expired": "BOOKING_EXPIRED",
       "payment.failed": "PAYMENT_FAILED",
       "departure.reminder": "DEPARTURE_REMINDER",
+      "register.successful": "REGISTER_SUCCESFUL",
     };
     return map[routingKey] || routingKey;
   }

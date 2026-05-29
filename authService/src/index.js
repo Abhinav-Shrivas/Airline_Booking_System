@@ -3,9 +3,11 @@ const cookieParser = require("cookie-parser");
 const { PORT } = require("./config/serverConfig");
 const { requestMiddleware, errorMiddleware, logger } = require("shared");
 const apiRoutes = require("./routes/index.js");
+const eventPublisher = require("./utils/eventPublisher.js");
 require("./jobs/clean-expired-sessions");
 
 const setAndStartServer = async () => {
+  await eventPublisher.init();
   const app = express();
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));

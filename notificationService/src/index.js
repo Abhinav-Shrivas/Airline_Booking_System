@@ -3,6 +3,7 @@ const cookieParser = require("cookie-parser");
 const { PORT, RABBITMQ_URL } = require("./config/serverConfig");
 const { requestMiddleware, errorMiddleware, logger, connectQueue } = require("shared");
 const bookingConsumer = require("./consumers/booking.consumer");
+const authConsumer = require("./consumers/auth.consumer");
 const apiRoutes = require("./routes");
 require("./jobs/departureReminder");
 
@@ -20,6 +21,7 @@ const setAndStartServer = async () => {
   try {
     const channel = await connectQueue(RABBITMQ_URL);
     await bookingConsumer.startConsumer(channel);
+    await authConsumer.startConsumer(channel);
     logger.info("RabbitMQ consumer started — listening for booking events");
   } catch (error) {
     logger.error(`Failed to start RabbitMQ consumer: ${error.message}`);

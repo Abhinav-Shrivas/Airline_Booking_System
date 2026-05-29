@@ -1,7 +1,7 @@
 const { connectQueue, publishMessage, logger } = require("shared");
 const { RABBITMQ_URL } = require("../config/serverConfig");
 
-const EXCHANGE = "booking_events";
+const EXCHANGE = "auth_events";
 let channel;
 
 async function init() {
