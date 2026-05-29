@@ -1,5 +1,5 @@
 const { BookingRepository } = require("../repositories/index.js");
-const { AppError } = require("shared");
+const { AppError, logger } = require("shared");
 const { sequelize } = require("../models");
 const flightClient = require("../utils/flightService.client");
 const paymentService = require("./payment.service.js");

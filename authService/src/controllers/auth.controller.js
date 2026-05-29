@@ -1,6 +1,6 @@
 const authService = require("../services/auth.service");
 const { getSessionCookieOptions } = require("../config/serverConfig");
-const { asyncHandler, successResponse } = require("shared");
+const { asyncHandler, successResponse, AppError } = require("shared");
 const { SESSION_COOKIE_NAME } = require("../config/serverConfig");
 const { getGoogleAuthURL } = require("../utils/google-oauth");
 
@@ -114,10 +114,9 @@ const logout = asyncHandler(async (req, res) => {
 
 const logoutFromOtherDevices = asyncHandler(async (req, res) => {
   await authService.logoutFromOtherDevices(req.jwtPayload);
-  res.clearCookie(SESSION_COOKIE_NAME);
 
   successResponse(res, {
-    message: "Logout Successful",
+    message: "Successfully logged out from all other devices.",
     statusCode: 200,
   });
 });
