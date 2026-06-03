@@ -45,6 +45,7 @@ class BookingService {
     }
   }
 
+  // post-payment before 24hours
   async cancelAndRefundBooking(bookingId, userId, options = {}) {
     const { skipTimeCheck = false, skipOwnershipCheck = false } = options;
 
@@ -216,6 +217,33 @@ class BookingService {
       }
     }
     return upcomingBookings;
+  }
+
+  // Admin cancel without refund (no-show, fraud, policy violation)
+  async adminCancelBooking(bookingId) {
+    const booking = await bookingRepository.findByIdWithDetails(bookingId);
+    if (!booking) throw new AppError("Booking not found", 404);
+
+    if (booking.status !== "CONFIRMED") {
+      throw new AppError(
+        `Cannot cancel a booking with status: ${booking.status}`,
+        400,
+      );
+    }
+
+    booking.status = "CANCELLED";
+    await booking.save();
+
+    // Release seats back
+    await flightClient.incrementSeats(booking.flightId, booking.noOfSeats);
+    eventPublisher.publish("booking.cancelled_no_refund", {
+      bookingId,
+      userId: booking.userId,
+      flightId: booking.flightId,
+      noOfSeats: booking.noOfSeats,
+    });
+
+    return booking;
   }
 }
 

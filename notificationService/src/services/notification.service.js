@@ -1,4 +1,4 @@
-const { logger } = require("shared");
+const { logger, AppError } = require("shared");
 const NotificationRepository = require("../repositories/notification.repository");
 const authClient = require("../utils/authClient.js");
 const flightClient = require("../utils/flightClient.js");
@@ -9,9 +9,16 @@ const notificationRepository = new NotificationRepository();
 
 class NotificationService {
   async handleEvent(eventType, payload) {
+    let recipientEmail = "unknown@example.com";
+    let emailSubject = "Failed before rendering";
+    
     try {
       // 1. Fetch user email from AuthService
       const user = await authClient.getUserById(payload.userId);
+      if (!user || !user.email) {
+        throw new AppError(`User ${payload.userId} not found or has no email`, 500);
+      }
+      recipientEmail = user.email;
 
       // 2. Fetch flight details (if event has a flightId)
       let flight = null;
@@ -28,13 +35,14 @@ class NotificationService {
       // 3. Build email content
       const enrichedData = { ...payload, user, flight };
       const { subject, html } = emailTemplates.build(eventType, enrichedData);
+      emailSubject = subject;
 
       // 4. Create notification record (PENDING)
       const notificationData = {
         userId: payload.userId,
         type: this._mapEventToType(eventType),
-        recipientEmail: user.email,
-        subject,
+        recipientEmail,
+        subject: emailSubject,
         status: "PENDING",
       };
       if (eventType !== "register.successful") {
@@ -44,16 +52,16 @@ class NotificationService {
 
       // 5. Send email
       try {
-        await emailService.send(user.email, subject, html);
+        await emailService.send(recipientEmail, emailSubject, html);
         notification.status = "SENT";
         notification.sentAt = new Date();
         const bookingLog = eventType !== "register.successful" ? ` for booking #${payload.bookingId}` : "";
-        logger.info(`Sent ${eventType} email to ${user.email}${bookingLog}`);
+        logger.info(`Sent ${eventType} email to ${recipientEmail}${bookingLog}`);
       } catch (emailError) {
         notification.status = "FAILED";
         notification.failReason = emailError.message;
         logger.error(
-          `Failed to send ${eventType} email to ${user.email}: ${emailError.message}`,
+          `Failed to send ${eventType} email to ${recipientEmail}: ${emailError.message}`,
         );
       }
 
@@ -65,6 +73,8 @@ class NotificationService {
         const failedNotificationData = {
           userId: payload.userId,
           type: this._mapEventToType(eventType),
+          recipientEmail,
+          subject: emailSubject,
           status: "FAILED",
           failReason: error.message,
         };
@@ -104,6 +114,7 @@ class NotificationService {
     const map = {
       "booking.confirmed": "BOOKING_CONFIRMED",
       "booking.cancelled": "BOOKING_CANCELLED",
+      "booking.cancelled_no_refund": "BOOKING_CANCELLED_NO_REFUND",
       "booking.refunded": "BOOKING_REFUNDED",
       "booking.expired": "BOOKING_EXPIRED",
       "payment.failed": "PAYMENT_FAILED",

@@ -3,6 +3,8 @@ const cookieParser = require("cookie-parser");
 const { PORT } = require("./config/serverConfig");
 const { requestMiddleware, errorMiddleware, logger } = require("shared");
 const apiRoutes = require("./routes/index.js");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swaggerConfig");
 const eventPublisher = require("./utils/eventPublisher.js");
 require("./jobs/clean-expired-sessions");
 
@@ -15,6 +17,7 @@ const setAndStartServer = async () => {
 
   app.use(requestMiddleware);
   app.use("/api", apiRoutes);
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.use(errorMiddleware);
   
   app.listen(PORT, async () => {

@@ -58,10 +58,20 @@ const cancelBooking = asyncHandler(async (req, res) => {
   successResponse(res, { data, message: "Booking cancelled successfully." });
 });
 
+const adminCancelBooking = asyncHandler(async (req, res) => {
+  const bookingId = parseInt(req.params.id);
+  const data = await BookingService.adminCancelBooking(bookingId);
+  successResponse(res, {
+    data,
+    message: "Booking cancelled by admin (no refund).",
+  });
+});
+
 module.exports = {
   createBooking,
   refundBooking,
   adminRefundBooking,
+  adminCancelBooking,
   getBooking,
   getUserBookings,
   cancelBooking,

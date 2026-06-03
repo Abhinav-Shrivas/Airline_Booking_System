@@ -90,6 +90,11 @@ function build(eventType, data) {
       subject: `Reminder: Your flight departs tomorrow ✈️`,
       html: `<div style="font-family: Arial;"><h2 style="color: #8b5cf6;">Flight Reminder</h2><p>Hi ${data.user.name}, this is a reminder that your flight ${data.flight?.flightNo} departs on ${new Date(data.flight?.departureTime).toLocaleString()}.</p><p>Booking #${data.bookingId} — ${data.noOfSeats} passenger(s).</p></div>`,
     }),
+
+    "booking.cancelled_no_refund": () => ({
+      subject: `Booking #${data.bookingId} Cancelled — No Refund`,
+      html: `<div style="font-family: Arial;"><h2 style="color: #ef4444;">Booking Cancelled</h2><p>Hi ${data.user.name}, your booking #${data.bookingId} (${data.noOfSeats} seat(s) on flight ${data.flight?.flightNo || data.flightId}) has been cancelled by the airline. No refund will be issued for this cancellation.</p><p style="color: #666;">If you believe this is an error, please contact our support team.</p></div>`,
+    }),
   };
 
   const templateFn = templates[eventType];

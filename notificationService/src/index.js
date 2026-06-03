@@ -5,6 +5,8 @@ const { requestMiddleware, errorMiddleware, logger, connectQueue } = require("sh
 const bookingConsumer = require("./consumers/booking.consumer");
 const authConsumer = require("./consumers/auth.consumer");
 const apiRoutes = require("./routes");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swaggerConfig");
 require("./jobs/departureReminder");
 
 const setAndStartServer = async () => {
@@ -15,6 +17,7 @@ const setAndStartServer = async () => {
 
   app.use(requestMiddleware);
   app.use("/api", apiRoutes);
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.use(errorMiddleware);
 
   // Initialize RabbitMQ consumer

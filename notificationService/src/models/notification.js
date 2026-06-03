@@ -12,6 +12,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.ENUM(
           "BOOKING_CONFIRMED",
           "BOOKING_CANCELLED",
+          "BOOKING_CANCELLED_NO_REFUND",
           "BOOKING_REFUNDED",
           "BOOKING_EXPIRED",
           "PAYMENT_FAILED",

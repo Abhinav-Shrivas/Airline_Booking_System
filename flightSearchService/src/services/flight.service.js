@@ -63,10 +63,13 @@ class FlightService extends CrudService {
     };
     if (!isRoundTrip) {
       data = await flightRepository.getFlights(newFilters);
-      data = data.map((flight) => ({
-        ...flight,
-        totalPrice: flight.price * parseInt(filters.noOfSeats, 10),
-      }));
+      data = data.map((flight) => {
+        const plain = flight.get({ plain: true });
+        return {
+          ...plain,
+          totalPrice: plain.price * parseInt(filters.noOfSeats, 10),
+        };
+      });
     } else {
       const returnFilters = {
         ...newFilters,
@@ -85,14 +88,14 @@ class FlightService extends CrudService {
       const seats = parseInt(filters.noOfSeats, 10);
 
       data = {
-        outboundFlights: goingData.map((f) => ({
-          ...f,
-          totalPrice: f.price * seats,
-        })),
-        returnFlights: returnData.map((f) => ({
-          ...f,
-          totalPrice: f.price * seats,
-        })),
+        outboundFlights: goingData.map((f) => {
+          const plain = f.get({ plain: true });
+          return { ...plain, totalPrice: plain.price * seats };
+        }),
+        returnFlights: returnData.map((f) => {
+          const plain = f.get({ plain: true });
+          return { ...plain, totalPrice: plain.price * seats };
+        }),
       };
     }
     return data;

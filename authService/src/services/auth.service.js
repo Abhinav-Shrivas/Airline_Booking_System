@@ -149,6 +149,15 @@ class AuthService {
     }
 
     await otpRepository.deleteByEmail(storeOtp.email);
+
+    // Enforce session limits (same logic as login)
+    const sessions = await sessionRepository.findAllSessions(user.id);
+    if (sessions.length >= SESSION_LIMIT_PER_USER) {
+      const sessionsToDelete = sessions.length - 1;
+      for (let i = 0; i < sessionsToDelete; i++) {
+        await sessionRepository.destroy(sessions[i].id);
+      }
+    }
     const roles = user.roles.map((r) => r.name);
     const { sessionToken, accessToken } = await this._createSessionForUser(
       user.id,
@@ -182,7 +191,7 @@ class AuthService {
     } else {
       if (!user.googleId) {
         // Existing local user logging in with Google for the first time — link accounts
-        await userRepository.update(user.id, { googleId });
+        await userRepository.update(user.id, { googleId, provider: "both" });
       } else if (user.googleId !== googleId) {
         throw new AppError("Google account mismatch", 401);
       }
