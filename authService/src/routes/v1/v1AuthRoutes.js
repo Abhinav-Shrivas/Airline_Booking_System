@@ -44,6 +44,8 @@ const schemas = require("../../utils/auth.validation");
  *         description: User registered successfully
  *       409:
  *         description: User already exists
+ *       429:
+ *         description: Too Many Requests
  */
 router.post(
   "/register",
@@ -78,6 +80,8 @@ router.post(
  *         description: Login successful
  *       401:
  *         description: Invalid email or password
+ *       429:
+ *         description: Too Many Requests
  */
 router.post(
   "/login",
@@ -106,6 +110,8 @@ router.post(
  *     responses:
  *       200:
  *         description: OTP sent successfully
+ *       429:
+ *         description: Too Many Requests
  */
 router.post(
   "/sendOtp",
@@ -140,6 +146,8 @@ router.post(
  *         description: OTP verified, reset token returned
  *       400:
  *         description: Invalid or expired OTP
+ *       429:
+ *         description: Too Many Requests
  */
 router.post(
   "/verifyOtp",
@@ -174,6 +182,8 @@ router.post(
  *         description: Login successful
  *       401:
  *         description: Invalid OTP
+ *       429:
+ *         description: Too Many Requests
  */
 router.post(
   "/loginWithOtp",
