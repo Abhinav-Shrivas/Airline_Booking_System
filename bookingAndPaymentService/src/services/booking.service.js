@@ -100,6 +100,7 @@ class BookingService {
     return booking;
   }
 
+  //get booking by bookingId 
   async getBooking(bookingId, userId) {
     const booking = await bookingRepository.findByIdWithDetails(bookingId);
     if (!booking) {
@@ -111,6 +112,7 @@ class BookingService {
     return booking;
   }
 
+  //get booking by bookingId 
   async getBookingsByUser(userId) {
     return await bookingRepository.findByUserId(userId);
   }
@@ -147,6 +149,7 @@ class BookingService {
     return booking;
   }
 
+  //confirm the booking  
   async confirmBooking(bookingId) {
     const booking = await bookingRepository.fetch(bookingId);
     if (!booking) throw new AppError("Booking not found", 404);
