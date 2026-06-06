@@ -277,6 +277,7 @@ class AuthService {
     return true;
   }
 
+  //sendotp
   async sendOtp(email) {
     const otp = generateOtp();
     const otpHash = hashToken(String(otp));
@@ -298,7 +299,7 @@ class AuthService {
       try {
         await sendEmail(email, "OTP", emailText);
       } catch (error) {
-        await otpRepository.deleteByEmail(email);
+        await otpRepository.destroy(otpSession.id);
         throw new AppError("Something went wrong", 500);
       }
       return { otpId: otpSession.id };
