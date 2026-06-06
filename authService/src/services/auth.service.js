@@ -121,7 +121,7 @@ class AuthService {
 
     const sessions = await sessionRepository.findAllSessions(user.id);
     if (sessions.length >= SESSION_LIMIT_PER_USER) {
-      const sessionsToDelete = sessions.length - 1;
+      const sessionsToDelete = sessions.length - SESSION_LIMIT_PER_USER + 1;
       for (let i = 0; i < sessionsToDelete; i++) {
         await sessionRepository.destroy(sessions[i].id);
       }
@@ -153,7 +153,7 @@ class AuthService {
     // Enforce session limits (same logic as login)
     const sessions = await sessionRepository.findAllSessions(user.id);
     if (sessions.length >= SESSION_LIMIT_PER_USER) {
-      const sessionsToDelete = sessions.length - 1;
+      const sessionsToDelete = sessions.length - SESSION_LIMIT_PER_USER + 1;
       for (let i = 0; i < sessionsToDelete; i++) {
         await sessionRepository.destroy(sessions[i].id);
       }
@@ -200,7 +200,7 @@ class AuthService {
     // Enforce session limits (same logic as login)
     const sessions = await sessionRepository.findAllSessions(user.id);
     if (sessions.length >= SESSION_LIMIT_PER_USER) {
-      const sessionsToDelete = sessions.length - 1;
+      const sessionsToDelete = sessions.length - SESSION_LIMIT_PER_USER + 1;
       for (let i = 0; i < sessionsToDelete; i++) {
         await sessionRepository.destroy(sessions[i].id);
       }
