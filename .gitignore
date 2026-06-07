@@ -1,6 +1,3 @@
 node_modules/
 logs/
 .env
-code_review.md
-implementation_plan.md
-api_reference.md
