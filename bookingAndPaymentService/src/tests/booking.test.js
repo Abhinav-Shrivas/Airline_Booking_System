@@ -167,3 +167,85 @@ describe("testing create booking function of booking service", () => {
     );
   });
 });
+
+describe("testing cancelBooking function of booking service", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const mockBooking = {
+    id: 1,
+    userId: 1,
+    flightId: 1,
+    noOfSeats: 2,
+    status: "INITIATED",
+    save: jest.fn().mockResolvedValue(),
+  };
+
+  // HAPPY PATH
+  it("should cancel booking, release seats, and publish event", async () => {
+    const findSpy = jest
+      .spyOn(BookingRepository.prototype, "findByIdWithDetails")
+      .mockResolvedValue({ ...mockBooking, save: jest.fn().mockResolvedValue() });
+
+    const incrementSpy = jest
+      .spyOn(flightClient, "incrementSeats")
+      .mockResolvedValue();
+
+    const publishSpy = jest
+      .spyOn(eventPublisher, "publish")
+      .mockImplementation();
+
+    const result = await bookingService.cancelBooking(mockBooking.id, mockBooking.userId);
+
+    expect(result.status).toBe("CANCELLED");
+    expect(result.save).toHaveBeenCalled();
+    expect(incrementSpy).toHaveBeenCalledWith(mockBooking.flightId, mockBooking.noOfSeats);
+    expect(publishSpy).toHaveBeenCalledWith("booking.cancelled", {
+      bookingId: mockBooking.id,
+      userId: mockBooking.userId,
+      flightId: mockBooking.flightId,
+      noOfSeats: mockBooking.noOfSeats,
+    });
+  });
+
+  // ERROR PATHS
+  // booking not found
+  it("should throw 'Booking not found' if booking does not exist", async () => {
+    jest
+      .spyOn(BookingRepository.prototype, "findByIdWithDetails")
+      .mockResolvedValue(null);
+
+    await expect(
+      bookingService.cancelBooking(999, mockBooking.userId),
+    ).rejects.toThrow("Booking not found");
+  });
+
+  // wrong user
+  it("should throw 403 if user does not own the booking", async () => {
+    jest
+      .spyOn(BookingRepository.prototype, "findByIdWithDetails")
+      .mockResolvedValue({ ...mockBooking });
+
+    await expect(
+      bookingService.cancelBooking(mockBooking.id, 999),
+    ).rejects.toThrow("You are not authorized to cancel this booking");
+  });
+
+  // invalid status
+  it("should throw error if booking status is CONFIRMED", async () => {
+    jest
+      .spyOn(BookingRepository.prototype, "findByIdWithDetails")
+      .mockResolvedValue({ ...mockBooking, status: "CONFIRMED" });
+
+    await expect(
+      bookingService.cancelBooking(mockBooking.id, mockBooking.userId),
+    ).rejects.toThrow("Cannot cancel a booking with status: CONFIRMED");
+
+    const incrementSpy = jest.spyOn(flightClient, "incrementSeats");
+    expect(incrementSpy).not.toHaveBeenCalled();
+  });
+});
