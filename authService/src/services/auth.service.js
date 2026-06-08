@@ -1,8 +1,8 @@
 const UserRepository = require("../repositories/user.repository.js");
 const SessionRepository = require("../repositories/session.repository.js");
-const OtpRepository = require("../repositories/otp.repository.js");
 const { comparePassword } = require("../utils/password.js");
 const eventPublisher = require("../utils/eventPublisher.js");
+const redis = require("../config/redis.js");
 const {
   generateSessionToken,
   hashToken,
@@ -24,10 +24,8 @@ const { AppError } = require("shared");
 
 const userRepository = new UserRepository();
 const sessionRepository = new SessionRepository();
-const otpRepository = new OtpRepository();
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const MS_PER_MINUTE = 60 * 1000;
 
 class AuthService {
   /** Creates a new session for the user and returns session token + access token. */
@@ -56,28 +54,24 @@ class AuthService {
 
   /** Verifies OTP by id + code; returns stored OTP record or throws. */
   async _verifyOtp(otpId, otp) {
-    const storeOtp = await otpRepository.fetch(otpId);
-    if (!storeOtp) {
+    const raw = await redis.get(`otp:${otpId}`);
+    if (!raw) {
       throw new AppError("Invalid or expired OTP", 400);
+      // If Redis TTL expired, key is gone → this naturally handles expiry
     }
-
-    const attempts = storeOtp.attemptCount;
-    const isExpired = new Date() > storeOtp.expiresAt;
-
-    if (isExpired) {
-      await otpRepository.deleteByEmail(storeOtp.email);
-      throw new AppError("Invalid or expired OTP", 400);
-    }
-    if (attempts >= OTP_MAX_ATTEMPTS) {
-      await otpRepository.deleteByEmail(storeOtp.email);
+    const storedOtp = JSON.parse(raw);
+    if (storedOtp.attemptCount >= OTP_MAX_ATTEMPTS) {
+      await redis.del(`otp:${otpId}`, `otp:email:${storedOtp.email}`);
       throw new AppError("Too many attempts. Please request a new OTP", 429);
     }
     const hashOtp = hashToken(String(otp));
-    if (storeOtp.otpHash !== hashOtp) {
-      await otpRepository.update(otpId, { attemptCount: attempts + 1 });
+    if (storedOtp.otpHash !== hashOtp) {
+      // Increment attempt count, keep remaining TTL
+      storedOtp.attemptCount += 1;
+      await redis.set(`otp:${otpId}`, JSON.stringify(storedOtp), "KEEPTTL");
       throw new AppError("Invalid or expired OTP", 400);
     }
-    return storeOtp;
+    return storedOtp;
   }
 
   //register
@@ -92,7 +86,7 @@ class AuthService {
       ["USER"],
     );
     eventPublisher.publish("register.successful", {
-      userId : user.id,
+      userId: user.id,
     });
     return {
       user,
@@ -148,7 +142,7 @@ class AuthService {
       throw new AppError("Invalid email or password", 401);
     }
 
-    await otpRepository.deleteByEmail(storeOtp.email);
+    await redis.del(`otp:${otpId}`, `otp:email:${storeOtp.email}`);
 
     // Enforce session limits (same logic as login)
     const sessions = await sessionRepository.findAllSessions(user.id);
@@ -277,33 +271,41 @@ class AuthService {
     return true;
   }
 
-  //sendotp
+  //send otp and store data in redis
   async sendOtp(email) {
+    try {
+      await redis.ping();
+    } catch (err) {
+      throw new AppError(
+        "OTP service temporarily unavailable. Please use password login.",
+        503,
+      );
+    }
     const otp = generateOtp();
     const otpHash = hashToken(String(otp));
-    const now = Date.now();
-    const expiresAt = new Date(now + OTP_EXPIRY_MINUTES * MS_PER_MINUTE);
-    const otpData = {
-      otpHash,
-      expiresAt,
-      email,
-    };
-
-    //race condtion could occur in delete and creating data in otp so we can handle it by upsert or transaction(currently not implementing them).
-    await otpRepository.deleteByEmail(email);
+    const otpId = generateUuid();
+    const ttlSeconds = OTP_EXPIRY_MINUTES * 60;
+    // Delete any existing OTP for this email
+    const existingOtpId = await redis.get(`otp:email:${email}`);
+    if (existingOtpId) {
+      await redis.del(`otp:${existingOtpId}`, `otp:email:${email}`);
+    }
     const user = await userRepository.fetchByEmail(email);
     if (user) {
       const emailText = `Otp is: ${otp}`;
-      const otpSession = await otpRepository.create(otpData);
+      const otpData = JSON.stringify({ email, otpHash, attemptCount: 0 });
+      await redis.setex(`otp:${otpId}`, ttlSeconds, otpData);
+      await redis.setex(`otp:email:${email}`, ttlSeconds, otpId);
       // if sendEmail fails then we delete the otp stored and throw the error
       try {
         await sendEmail(email, "OTP", emailText);
       } catch (error) {
-        await otpRepository.destroy(otpSession.id);
+        await redis.del(`otp:${otpId}`, `otp:email:${email}`);
         throw new AppError("Something went wrong", 500);
       }
-      return { otpId: otpSession.id };
+      return { otpId: otpId };
     }
+
     // fake id if user doesn't exist to prevent data enumeration attack
     return { otpId: generateUuid() };
   }
@@ -312,7 +314,7 @@ class AuthService {
     const { otpId, otp } = data;
     const storeOtp = await this._verifyOtp(otpId, otp);
     const resetToken = generateResetToken(storeOtp.email);
-    await otpRepository.deleteByEmail(storeOtp.email);
+    await redis.del(`otp:${otpId}`, `otp:email:${storeOtp.email}`);
     return resetToken;
   }
 

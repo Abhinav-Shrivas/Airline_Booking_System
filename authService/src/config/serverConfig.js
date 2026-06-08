@@ -32,6 +32,7 @@ module.exports = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL,
   RABBITMQ_URL: process.env.RABBITMQ_URL || "amqp://localhost:5672",
+  REDIS_URL : process.env.REDIS_URL,
 
   // Auth constants
   SESSION_ROLLING_DAYS,
