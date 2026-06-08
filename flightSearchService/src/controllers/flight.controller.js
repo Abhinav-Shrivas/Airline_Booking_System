@@ -25,9 +25,9 @@ const getFlights = asyncHandler(async (req, res) => {
     noOfSeats: req.query.noOfSeats,
     departureDate: req.query.departureDate,
     returnDate: req.query.returnDate,
-    trip: req.query.trip,
-    sort: req.query.sort,
-    moreFlights: req.query.moreFlights,
+    trip: req.query.trip || "one-way",
+    sort: req.query.sort || "price",
+    moreFlights: req.query.moreFlights || "no",
   };
   const data = await FlightService.getFlights(filters);
   successResponse(res, {

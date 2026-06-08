@@ -5,8 +5,8 @@ const {
 } = require("../repositories/index");
 const { sequelize } = require("../models/index");
 const CrudService = require("../services/crud.service");
-const { AppError } = require("shared");
-
+const { AppError, logger } = require("shared");
+const redis = require("../config/redis");
 const flightRepository = new FlightRepository();
 const airplaneRepository = new AirplaneRepository();
 const cityRepository = new CityRepository();
@@ -15,7 +15,37 @@ class FlightService extends CrudService {
   constructor() {
     super(flightRepository);
   }
+  //function to build cache key in format of flight:from=2.... and we want to build key in a specific order that's why we declare this separate function
+  _buildCacheKey(filters) {
+    const parts = [
+      `from=${filters.from}`,
+      `to=${filters.to}`,
+      `date=${filters.departureDate}`,
+      `seats=${filters.noOfSeats}`,
+      `trip=${filters.trip || "one-way"}`,
+      `sort=${filters.sort || "price"}`,
+      `more=${filters.moreFlights || "no"}`,
+    ];
+    if (filters.trip === "round") {
+      parts.push(`return=${filters.returnDate}`);
+    }
+    return `flights:${parts.join(":")}`;
+  }
+
   async getFlights(filters) {
+    // 1. Check cache (don't crash if Redis is down)
+    const cacheKey = this._buildCacheKey(filters);
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        logger.info(`Cache HIT — ${cacheKey}`);
+        return JSON.parse(cached);
+      }
+      logger.info(`Cache MISS — ${cacheKey}`);
+    } catch (err) {
+      logger.warn(`Redis read failed, falling back to DB: ${err.message}`);
+    }
+
     const isRoundTrip = filters.trip === "round";
     const limit = filters.moreFlights === "yes" ? null : 5;
     const order =
@@ -98,6 +128,12 @@ class FlightService extends CrudService {
         }),
       };
     }
+    //Store in cache before returning (TTL = 5 minutes)
+    try {
+      await redis.setex(cacheKey, 300, JSON.stringify(data));
+    } catch (err) {
+      logger.warn(`Redis write failed: ${err.message}`);
+    }
     return data;
   }
 
@@ -122,6 +158,7 @@ class FlightService extends CrudService {
     if (affectedRows === 0) {
       throw new AppError("Not enough seats available or flight not found", 400);
     }
+    await this._clearFlightCache();
     return true;
   }
 
@@ -147,8 +184,51 @@ class FlightService extends CrudService {
         { transaction: t },
       );
 
+      await this._clearFlightCache();
       return { success: true };
     });
+  }
+
+  async _clearFlightCache() {
+    try {
+      // Use SCAN to find keys (non-blocking, unlike KEYS which blocks Redis)
+      let cursor = "0";
+      do {
+        const [nextCursor, keys] = await redis.scan(
+          cursor,
+          "MATCH",
+          "flights:*",
+          "COUNT",
+          100,
+        );
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await redis.del(...keys);
+        }
+      } while (cursor !== "0");
+      logger.info("Cache CLEARED — all flight search results invalidated");
+    } catch (err) {
+      logger.warn(`Cache clear failed: ${err.message}`);
+    }
+  }
+
+  // Override CrudService methods to add cache invalidation
+  async create(data) {
+    const result = await super.create(data);
+    await this._clearFlightCache();
+    return result;
+  }
+
+  async update(id, data) {
+    const result = await super.update(id, data);
+    await this._clearFlightCache();
+    return result;
+  }
+
+  async destroy(id) {
+    const result = await super.destroy(id);
+    await this._clearFlightCache();
+    return result;
   }
 }
 
