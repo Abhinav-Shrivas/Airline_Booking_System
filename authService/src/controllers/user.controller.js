@@ -22,6 +22,15 @@ const fetchUser = asyncHandler(async (req, res) => {
   });
 });
 
+// Internal: no JWT ownership check — secured by API key middleware
+const fetchUserInternal = asyncHandler(async (req, res) => {
+  const data = await userService.fetch(req.params.id);
+  successResponse(res, {
+    message: "Successfully fetched the User.",
+    data,
+  });
+});
+
 const updateUser = asyncHandler(async (req, res) => {
   const targetId = parseInt(req.params.id, 10);
   const { userId, roles } = req.jwtPayload;
@@ -45,6 +54,7 @@ const deleteUser = asyncHandler(async (req, res) => {
 
 module.exports = {
   fetchUser,
+  fetchUserInternal,
   updateUser,
   deleteUser,
   changePassword,

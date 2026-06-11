@@ -23,6 +23,7 @@ const { internalAuthMiddleware } = require("shared");
  *       401:
  *         description: Invalid API key
  */
-router.get("/users/:id", internalAuthMiddleware, userController.fetchUser);
+router.get("/users/:id", internalAuthMiddleware, userController.fetchUserInternal);
 
 module.exports = router;
+

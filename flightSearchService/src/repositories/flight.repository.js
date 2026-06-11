@@ -32,7 +32,7 @@ class FlightRepository extends CrudRepository {
     const [affectedRows] = await Flight.update(
       {
         totalSeatsLeft: sequelize.literal(
-          `totalSeatsLeft - ${parseInt(count,10)}`,
+          `"totalSeatsLeft" - ${parseInt(count,10)}`,
         ),
       },
       {
