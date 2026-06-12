@@ -23,7 +23,7 @@ if (RESEND_API_KEY) {
 async function send(to, subject, html) {
   if (resend) {
     await resend.emails.send({
-      from: "SkyBooker ✈️<onboarding@resend.dev>",
+      from: "SkyBooker ✈️ <noreply@skybooker.xyz>",
       to,
       subject,
       html,
