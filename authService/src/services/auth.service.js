@@ -20,7 +20,7 @@ const {
 } = require("../config/serverConfig.js");
 
 const { getGoogleTokens, getGoogleUserInfo } = require("../utils/google-oauth");
-const { AppError } = require("shared");
+const { AppError, logger } = require("shared");
 
 const userRepository = new UserRepository();
 const sessionRepository = new SessionRepository();
@@ -56,21 +56,23 @@ class AuthService {
   async _verifyOtp(otpId, otp) {
     const raw = await redis.get(`otp:${otpId}`);
     if (!raw) {
+      logger.warn(`OTP verification failed: OTP expired or not found [otpId=${otpId}]`);
       throw new AppError("Invalid or expired OTP", 400);
-      // If Redis TTL expired, key is gone → this naturally handles expiry
     }
     const storedOtp = JSON.parse(raw);
     if (storedOtp.attemptCount >= OTP_MAX_ATTEMPTS) {
       await redis.del(`otp:${otpId}`, `otp:email:${storedOtp.email}`);
+      logger.warn(`OTP max attempts exceeded, deleted [otpId=${otpId}]`);
       throw new AppError("Too many attempts. Please request a new OTP", 429);
     }
     const hashOtp = hashToken(String(otp));
     if (storedOtp.otpHash !== hashOtp) {
-      // Increment attempt count, keep remaining TTL
       storedOtp.attemptCount += 1;
       await redis.set(`otp:${otpId}`, JSON.stringify(storedOtp), "KEEPTTL");
+      logger.warn(`OTP mismatch, attempt ${storedOtp.attemptCount}/${OTP_MAX_ATTEMPTS} [otpId=${otpId}]`);
       throw new AppError("Invalid or expired OTP", 400);
     }
+    logger.info(`OTP verified successfully [otpId=${otpId}]`);
     return storedOtp;
   }
 
@@ -143,6 +145,7 @@ class AuthService {
     }
 
     await redis.del(`otp:${otpId}`, `otp:email:${storeOtp.email}`);
+    logger.info(`OTP login successful, cleaned up OTP keys [email=${storeOtp.email}]`);
 
     // Enforce session limits (same logic as login)
     const sessions = await sessionRepository.findAllSessions(user.id);
@@ -276,6 +279,7 @@ class AuthService {
     try {
       await redis.ping();
     } catch (err) {
+      logger.error("Redis ping failed — OTP service unavailable");
       throw new AppError(
         "OTP service temporarily unavailable. Please use password login.",
         503,
@@ -289,6 +293,7 @@ class AuthService {
     const existingOtpId = await redis.get(`otp:email:${email}`);
     if (existingOtpId) {
       await redis.del(`otp:${existingOtpId}`, `otp:email:${email}`);
+      logger.info(`Deleted existing OTP for [email=${email}]`);
     }
     const user = await userRepository.fetchByEmail(email);
     if (user) {
@@ -296,17 +301,21 @@ class AuthService {
       const otpData = JSON.stringify({ email, otpHash, attemptCount: 0 });
       await redis.setex(`otp:${otpId}`, ttlSeconds, otpData);
       await redis.setex(`otp:email:${email}`, ttlSeconds, otpId);
+      logger.info(`OTP stored in Redis [otpId=${otpId}, ttl=${ttlSeconds}s]`);
       // if sendEmail fails then we delete the otp stored and throw the error
       try {
         await sendEmail(email, "OTP", emailText);
+        logger.info(`OTP email sent to [email=${email}]`);
       } catch (error) {
         await redis.del(`otp:${otpId}`, `otp:email:${email}`);
+        logger.error(`OTP email failed, cleaned up Redis keys [email=${email}]`);
         throw new AppError("Something went wrong", 500);
       }
       return { otpId: otpId };
     }
 
     // fake id if user doesn't exist to prevent data enumeration attack
+    logger.info("OTP requested for non-existent user — returning fake otpId");
     return { otpId: generateUuid() };
   }
 
@@ -315,6 +324,7 @@ class AuthService {
     const storeOtp = await this._verifyOtp(otpId, otp);
     const resetToken = generateResetToken(storeOtp.email);
     await redis.del(`otp:${otpId}`, `otp:email:${storeOtp.email}`);
+    logger.info(`Reset token generated, OTP cleaned up [email=${storeOtp.email}]`);
     return resetToken;
   }
 

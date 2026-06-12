@@ -3,6 +3,11 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    const [existing] = await queryInterface.sequelize.query(
+      `SELECT id FROM "Airplanes" LIMIT 1`,
+    );
+    if (existing.length > 0) return;
+
     await queryInterface.bulkInsert(
       "Airplanes",
       [

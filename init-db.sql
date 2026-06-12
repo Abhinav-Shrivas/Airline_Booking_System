@@ -1,0 +1,4 @@
+CREATE DATABASE authentication_service_db_project;
+CREATE DATABASE flight_search_db_project;
+CREATE DATABASE booking_service_db_project;
+CREATE DATABASE notification_service_db;

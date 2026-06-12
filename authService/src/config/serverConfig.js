@@ -7,7 +7,11 @@ const SESSION_ABSOLUTE_DAYS = 30;
 const SESSION_LIMIT_PER_USER = 2;
 const OTP_EXPIRY_MINUTES = 2;
 const OTP_MAX_ATTEMPTS = 5;
+
+// access token are provided when the user login, it gets expired after 1 hour, then either login again or hit /refresh
 const ACCESS_TOKEN_EXPIRY = "60m";
+
+// 
 const RESET_TOKEN_EXPIRY = "10m";
 const SESSION_COOKIE_NAME = "sessionToken";
 const SESSION_COOKIE_MAX_AGE_MS = SESSION_ROLLING_DAYS * 24 * 60 * 60 * 1000;

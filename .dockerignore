@@ -1,0 +1,13 @@
+**/node_modules
+**/.env
+**/.git
+**/logs
+**/tests
+**/*.test.js
+**/.dockerignore
+**/Dockerfile
+**/.gitignore
+docker-compose.yml
+init-db.sql
+**/.env.example
+**/README.md

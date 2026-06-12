@@ -4,9 +4,9 @@ const { AppError } = require("shared");
 class UserRepository {
   // add role as "USER to be default"
   async create(data, roleName = "USER") {
-    const user = await User.create(data);
     const role = await Role.findOne({ where: { name: roleName } });
     if (!role) throw new AppError("Invalid role name.", 404);
+    const user = await User.create(data);
     await user.addRole(role);
     return user;
   }

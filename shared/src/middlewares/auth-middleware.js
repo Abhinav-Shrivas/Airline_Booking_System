@@ -12,6 +12,9 @@ const authMiddleware = asyncHandler(async (req, res, next) => {
 
   try {
     const payload = verifyAccessToken(token);
+    if (!payload.userId || !payload.sessionId) {
+      throw new Error("Invalid token payload");
+    }
     req.jwtPayload = payload;
   } catch (error) {
     throw new AppError("Invalid or expired token", 401);
