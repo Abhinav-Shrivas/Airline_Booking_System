@@ -11,8 +11,8 @@ const options = {
     },
     servers: [
       {
-        url: `http://localhost:${PORT}`,
-        description: 'Local development server',
+        url: process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`,
+        description: process.env.RENDER_EXTERNAL_URL ? 'Production server' : 'Local development server',
       },
     ],
     components: {
