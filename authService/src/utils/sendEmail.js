@@ -1,15 +1,41 @@
-const transporter = require("./mailTransporter");
-const {EMAIL_USER} = require("../config/serverConfig");
+const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+const { EMAIL_USER, EMAIL_PASS } = require("../config/serverConfig");
+const { logger } = require("shared");
+
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+// Resend (HTTPS) for production/Render, Nodemailer (SMTP) for local/Docker
+let resend;
+let transporter;
+
+if (RESEND_API_KEY) {
+  resend = new Resend(RESEND_API_KEY);
+  logger.info("Email provider: Resend (HTTPS)");
+} else {
+  transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: EMAIL_USER, pass: EMAIL_PASS },
+  });
+  logger.info("Email provider: Nodemailer/Gmail (SMTP)");
+}
 
 async function sendEmail(toEmail, subject, text) {
-  const mailOptions = {
-    from: EMAIL_USER,
-    to: toEmail,
-    subject,
-    text
-  };
-
-  await transporter.sendMail(mailOptions);
+  if (resend) {
+    await resend.emails.send({
+      from: "SkyBooker ✈️<onboarding@resend.dev>",
+      to: toEmail,
+      subject,
+      text,
+    });
+  } else {
+    await transporter.sendMail({
+      from: "SkyBooker ✈️",
+      to: toEmail,
+      subject,
+      text,
+    });
+  }
 }
 
 module.exports = sendEmail;
