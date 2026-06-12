@@ -16,6 +16,7 @@ const setAndStartServer = async () => {
   app.use(cookieParser());
 
   app.use(requestMiddleware);
+  app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
   app.use("/api", apiRoutes);
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.use(errorMiddleware);
