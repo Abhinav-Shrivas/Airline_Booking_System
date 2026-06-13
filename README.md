@@ -290,6 +290,10 @@ Sequelize's `sequelize.transaction()` provides automatic commit/rollback with as
 
 `sequelize-cli db:seed:all` stops at the first error. If a seeder tries to insert a row that already exists (e.g., the "USER" role), it throws a unique constraint error and prevents all subsequent seeders from running. Each seeder checks for existing data before inserting (`SELECT ... LIMIT 1`), making container restarts with persistent volumes reliable.
 
+### Why rolling refresh tokens in HttpOnly cookies?
+
+Access tokens are short-lived (15 min) and sent via `Authorization` header. Refresh tokens are long-lived and stored in an **HttpOnly, Secure, SameSite=Strict** cookie — never accessible to JavaScript, which eliminates XSS-based token theft. On each `/auth/refresh` call, the old refresh token is invalidated and a new one is issued (token rotation). If a stolen token is reused after rotation, the mismatch is detected and all sessions for that user are invalidated. Each user is limited to 2 active sessions — a third login evicts the oldest session automatically.
+
 ---
 
 ## Booking Lifecycle
