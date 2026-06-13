@@ -11,7 +11,7 @@ class CityRepository extends CrudRepository {
     const result = await City.findAll({
       where: {
         name: {
-          [Op.like]: `${search}%`,
+          [Op.iLike]: `${search}%`,
         },
       },
       limit: 5,

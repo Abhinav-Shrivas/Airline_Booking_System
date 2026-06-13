@@ -1,6 +1,6 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
-const { PORT } = require("./config/serverConfig");
+const { PORT, NOTIFICATION_SERVICE_URL } = require("./config/serverConfig");
 const { requestMiddleware, errorMiddleware, logger } = require("shared");
 const apiRoutes = require("./routes/index.js");
 const swaggerUi = require("swagger-ui-express");
@@ -23,6 +23,11 @@ const setAndStartServer = async () => {
   
   app.listen(PORT, async () => {
     logger.info(`Server running on port : ${PORT}`);
+
+    // Wake up the notification service on render (fire-and-forget)
+    if (NOTIFICATION_SERVICE_URL) {
+      fetch(`${NOTIFICATION_SERVICE_URL}/health`).catch(() => {});
+    }
   });
 };
 setAndStartServer();

@@ -1,0 +1,3 @@
+# Force bash scripts to always use Linux line endings (LF)
+# This prevents Docker local builds from failing on Windows
+*.sh text eol=lf
