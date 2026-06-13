@@ -1145,7 +1145,5 @@ Environment variables are set in the Render dashboard (not in code). Each servic
 ### Known limitations
 
 - **Cold starts (~30-50s):** Render free tier spins down services after 15 min of inactivity. The first request wakes it up.
-- **SMTP blocked:** Render free tier blocks outbound SMTP. Emails are sent via Resend's HTTPS API instead.
 - **Single database:** Render free tier provides one PostgreSQL database. All 4 services share it (tables don't overlap). Locally, Docker Compose creates 4 separate databases via `init-db.sql`.
-- **Free tier database expiry:** Render's free PostgreSQL expires after 90 days. For long-term hosting, upgrade to a paid plan or migrate to Neon/Supabase.
 - **Notification service wakeup:** RabbitMQ messages do not wake a sleeping Render service. The auth service auto-pings the notification service on startup, but there may be a ~30s delay before emails are processed after a cold start.
