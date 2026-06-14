@@ -8,21 +8,22 @@ An airline booking backend built with Node.js microservices, featuring RabbitMQ-
 
 1. [Overview](#overview)
 2. [Live Demo](#live-demo)
-3. [Architecture Diagram](#architecture-diagram)
-4. [Tech Stack](#tech-stack)
-5. [Database Schema](#database-schema)
-6. [Key Design Decisions](#key-design-decisions)
-7. [Booking Lifecycle](#booking-lifecycle)
-8. [Transaction Management](#transaction-management)
-9. [Authorization & RBAC](#authorization--rbac)
-10. [OTP & Password Reset Flow](#otp--password-reset-flow)
-11. [Internal Service Communication](#internal-service-communication)
-12. [Caching Strategy](#caching-strategy)
-13. [API Documentation](#api-documentation)
-14. [Testing](#testing)
-15. [Local Setup](#local-setup)
-16. [Project Structure](#project-structure)
-17. [Deployment](#deployment)
+3. [Features](#features)
+4. [Architecture Diagram](#architecture-diagram)
+5. [Tech Stack](#tech-stack)
+6. [Database Schema](#database-schema)
+7. [Key Design Decisions](#key-design-decisions)
+8. [Booking Lifecycle](#booking-lifecycle)
+9. [Transaction Management](#transaction-management)
+10. [Authorization & RBAC](#authorization--rbac)
+11. [OTP & Password Reset Flow](#otp--password-reset-flow)
+12. [Internal Service Communication](#internal-service-communication)
+13. [Caching Strategy](#caching-strategy)
+14. [API Documentation](#api-documentation)
+15. [Testing](#testing)
+16. [Local Setup](#local-setup)
+17. [Project Structure](#project-structure)
+18. [Deployment](#deployment)
 
 ---
 
@@ -56,6 +57,23 @@ SkyBooker is a microservices-based airline booking system that implements a comp
 Email:     admin@airline.com
 Password:  Admin@123
 ```
+
+---
+
+## Features
+
+- **Microservices architecture** — 4 independent services, each with its own database and Swagger docs
+- **Event-driven notifications** — RabbitMQ pub/sub for async email delivery (booking, cancellation, reminders)
+- **Saga pattern** — Compensating transactions for cross-service seat reservation rollbacks
+- **Redis caching** — Cache-aside with graceful degradation; sub-50ms flight search on cache hits
+- **Rolling refresh tokens** — HttpOnly secure cookies with token rotation and stolen-token detection
+- **Google OAuth 2.0** — One-click login alongside email/password with OTP-based password reset
+- **Role-based access control** — USER, ADMIN, AIRLINE_STAFF roles with middleware-enforced route guards
+- **Internal API security** — Service-to-service calls authenticated via shared `x-internal-api-key` header
+- **Booking lifecycle** — Full state machine (INITIATED → PENDING → CONFIRMED → CANCELLED/EXPIRED)
+- **Auto-expiry cron** — Unpaid bookings expire after 10 minutes; seats auto-restored
+- **Dual email provider** — Auto-switches between Nodemailer (local) and Resend (cloud) based on environment
+- **Dockerized deployment** — Docker Compose for local dev; Render for production with CI/CD on push
 
 ---
 
