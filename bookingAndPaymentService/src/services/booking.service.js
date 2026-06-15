@@ -45,6 +45,82 @@ class BookingService {
     }
   }
 
+  //create booking for round trip
+  async createBooking(
+    userId,
+    { returnFlightId, outboundFlightId, noOfSeats, passengers },
+  ) {
+    // 1. Validate passenger count matches seat count
+    if (passengers.length !== noOfSeats) {
+      throw new AppError(
+        `Passenger count (${passengers.length}) must match seat count (${noOfSeats})`,
+        400,
+      );
+    }
+
+    // 2. Fetch flight details from FlightSearch Service
+    const [outboundFlight, returnFlight] = await Promise.all([
+      flightClient.getFlightById(outboundFlightId),
+      flightClient.getFlightById(returnFlightId),
+    ]);
+
+    // 3. Check seat availability
+    if (outboundFlight.totalSeatsLeft < noOfSeats) {
+      throw new AppError(
+        `Only ${outboundFlight.totalSeatsLeft} seats available in selected outbound flight, requested ${noOfSeats}`,
+        400,
+      );
+    }
+
+    if (returnFlight.totalSeatsLeft < noOfSeats) {
+      throw new AppError(
+        `Only ${returnFlight.totalSeatsLeft} seats available in selected return flight, requested ${noOfSeats}`,
+        400,
+      );
+    }
+
+    // 4. Checking if return flight departs after the outbound flight reach its destination
+    const outboundArrivalTime = new Date(outboundFlight.arrivalTime);
+    const returnDepartureTime = new Date(returnFlight.departureTime);
+
+    // 1 hour layover time
+    if (returnDepartureTime - outboundArrivalTime < 60 * 60 * 1000) {
+      throw new AppError(
+        "Return flight must depart after the outbound flight arrives",
+        400,
+      );
+    }
+
+    // 5. Reserve seats (atomic decrement in FlightSearch)
+    await flightClient.decrementSeats(outboundFlightId, noOfSeats);
+
+    try {
+      await flightClient.decrementSeats(returnFlightId, noOfSeats);
+    } catch (error) {
+      await flightClient.incrementSeats(outboundFlightId, noOfSeats);
+      throw error;
+    }
+
+    // 5. Create booking + passengers
+    try {
+      const outboundFlightCost = outboundFlight.price;
+      const returnFlightCost = returnFlight.price;
+      const totalCost = flight.price * noOfSeats;
+      const booking = await bookingRepository.createBookingWithPassengers(
+        { userId, flightId, noOfSeats, totalCost, status: "INITIATED" },
+        passengers,
+      );
+      return booking;
+    } catch (error) {
+      // If booking creation fails, release the reserved seats
+      await Promise.all([
+        flightClient.incrementSeats(outboundFlight, noOfSeats),
+        flightClient.incrementSeats(returnFlightId, noOfSeats),
+      ]);
+      throw error;
+    }
+  }
+
   // post-payment before 24hours
   async cancelAndRefundBooking(bookingId, userId, options = {}) {
     const { skipTimeCheck = false, skipOwnershipCheck = false } = options;
@@ -100,7 +176,7 @@ class BookingService {
     return booking;
   }
 
-  //get booking by bookingId 
+  //get booking by bookingId
   async getBooking(bookingId, userId) {
     const booking = await bookingRepository.findByIdWithDetails(bookingId);
     if (!booking) {
@@ -112,7 +188,7 @@ class BookingService {
     return booking;
   }
 
-  //get booking by bookingId 
+  //get booking by bookingId
   async getBookingsByUser(userId) {
     return await bookingRepository.findByUserId(userId);
   }
@@ -149,7 +225,7 @@ class BookingService {
     return booking;
   }
 
-  //confirm the booking  
+  //confirm the booking
   async confirmBooking(bookingId) {
     const booking = await bookingRepository.fetch(bookingId);
     if (!booking) throw new AppError("Booking not found", 404);

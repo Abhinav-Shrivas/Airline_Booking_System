@@ -12,6 +12,17 @@ const createBooking = asyncHandler(async (req, res) => {
   });
 });
 
+const createBookingRound = asyncHandler(async (req, res) => {
+  const userId = req.jwtPayload.userId; 
+  const data = await BookingService.createBooking(userId, req.body);
+  successResponse(res, {
+    data,
+    message:
+      "Booking created successfully. Complete payment within 10 minutes.",
+    statusCode: 201,
+  });
+});
+
 const refundBooking = asyncHandler(async (req, res) => {
   const bookingId = parseInt(req.params.id);
   const userId = req.jwtPayload.userId;
