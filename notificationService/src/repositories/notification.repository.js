@@ -6,9 +6,13 @@ class NotificationRepository extends CrudRepository {
     super(Notification);
   }
 
-  async findByUserId(userId) {
+  async findByUserId(userId, { status } = {}) {
+    const where = { userId };
+    if (status) {
+      where.status = status;
+    }
     return await Notification.findAll({
-      where: { userId },
+      where,
       order: [["createdAt", "DESC"]],
     });
   }

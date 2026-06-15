@@ -30,7 +30,7 @@ async function sendEmail(toEmail, subject, text) {
     });
   } else {
     await transporter.sendMail({
-      from: "SkyBooker ✈️",
+      from: `SkyBooker ✈️ <${EMAIL_USER}>`,
       to: toEmail,
       subject,
       text,

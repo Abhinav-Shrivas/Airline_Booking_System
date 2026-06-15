@@ -106,8 +106,11 @@ class NotificationService {
     }
   }
 
-  async getNotificationsByUser(userId) {
-    return await notificationRepository.findByUserId(userId);
+  async getNotificationsByUser(userId, roles = []) {
+    const isAdmin = roles.includes("ADMIN");
+    // Regular users only see SENT notifications; admins see all
+    const filters = isAdmin ? {} : { status: "SENT" };
+    return await notificationRepository.findByUserId(userId, filters);
   }
 
   _mapEventToType(routingKey) {

@@ -80,6 +80,12 @@ class AuthService {
   async register(data) {
     const response = await userRepository.fetchByEmail(data.email);
     if (response) {
+      if (response.provider === "google" && !response.password) {
+        throw new AppError(
+          "This email is linked to a Google account. Use 'Forgot Password' to set a password, then you can log in with either method.",
+          409,
+        );
+      }
       throw new AppError("User already exists. Please sign in.", 409);
     }
     const user = await userRepository.create(data);
@@ -105,7 +111,7 @@ class AuthService {
     }
     if (user.provider === "google" && !user.password) {
       throw new AppError(
-        "This account uses Google login. Please sign in with Google.",
+        "This account uses Google login. Use 'Forgot Password' to set a password, or sign in with Google.",
         400,
       );
     }
@@ -184,6 +190,9 @@ class AuthService {
         password: null,
         provider: "google",
         googleId,
+      });
+      eventPublisher.publish("register.successful", {
+        userId: user.id,
       });
     } else {
       if (!user.googleId) {
@@ -331,7 +340,12 @@ class AuthService {
   // change password using temporary access token
   async changePasswordWithToken(email, newPassword) {
     const user = await userRepository.fetchByEmail(email);
-    await userRepository.update(user.id, { password: newPassword });
+    const updateData = { password: newPassword };
+    // If Google-only user sets a password, upgrade provider to "both"
+    if (user.provider === "google") {
+      updateData.provider = "both";
+    }
+    await userRepository.update(user.id, updateData);
     await sessionRepository.deleteByUserId(user.id);
     return true;
   }

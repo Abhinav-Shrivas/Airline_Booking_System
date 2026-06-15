@@ -72,14 +72,11 @@ const googleCallback = asyncHandler(async (req, res) => {
     result.sessionToken,
     getSessionCookieOptions(),
   );
-  successResponse(res, {
-    message: "Google login successful",
-    data: {
-      email: result.user.email,
-      accessToken: result.accessToken,
-    },
-    statusCode: 200,
-  });
+
+  // Redirect to frontend with access token
+  const frontendURL = process.env.FRONTEND_URL || "http://localhost:5173";
+  const redirectUrl = `${frontendURL}/auth/google/callback?accessToken=${encodeURIComponent(result.accessToken)}&email=${encodeURIComponent(result.user.email)}`;
+  res.redirect(redirectUrl);
 });
 
 //refresh
