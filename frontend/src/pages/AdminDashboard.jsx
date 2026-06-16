@@ -29,6 +29,57 @@ export default function AdminDashboard() {
   // Booking admin action state
   const [bookingActionId, setBookingActionId] = useState('');
 
+  const [editingId, setEditingId] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    let formattedData = { ...item };
+    if (item.flightNo) {
+      formattedData.departureTime = item.departureTime ? new Date(item.departureTime).toISOString().slice(0, 16) : '';
+      formattedData.arrivalTime = item.arrivalTime ? new Date(item.arrivalTime).toISOString().slice(0, 16) : '';
+      // Map properties for backend payload
+      formattedData.airplaneId = item.airplane_id;
+      formattedData.departureAirportId = item.departure_airport_id;
+      formattedData.arrivalAirportId = item.arrival_airport_id;
+    }
+    setEditFormData(formattedData);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditFormData({});
+  };
+
+  const handleUpdate = async (type, id) => {
+    try {
+      if (type === 'city') {
+        await adminApi.updateCity(id, { name: editFormData.name });
+      } else if (type === 'airport') {
+        await adminApi.updateAirport(id, { name: editFormData.name, city_id: Number(editFormData.city_id), address: editFormData.address });
+      } else if (type === 'airplane') {
+        await adminApi.updateAirplane(id, { modelNo: editFormData.ModelNo || editFormData.modelNo, capacity: Number(editFormData.capacity) });
+      } else if (type === 'flight') {
+        await adminApi.updateFlight(id, {
+          flightNo: editFormData.flightNo,
+          airplane_id: Number(editFormData.airplaneId),
+          departure_airport_id: Number(editFormData.departureAirportId),
+          arrival_airport_id: Number(editFormData.arrivalAirportId),
+          departureTime: editFormData.departureTime,
+          arrivalTime: editFormData.arrivalTime,
+          price: Number(editFormData.price),
+          boardingGate: editFormData.boardingGate || undefined,
+          totalSeatsLeft: editFormData.totalSeatsLeft ? Number(editFormData.totalSeatsLeft) : undefined
+        });
+      }
+      showToast(`${type} updated successfully`, 'success');
+      setEditingId(null);
+      loadData(type === 'city' ? 'cities' : type === 'airport' ? 'airports' : type === 'airplane' ? 'airplanes' : 'flights');
+    } catch (err) {
+      showToast(extractApiError(err), 'error');
+    }
+  };
+
   useEffect(() => {
     loadData(activeTab);
   }, [activeTab]);
@@ -38,16 +89,16 @@ export default function AdminDashboard() {
     try {
       if (tab === 'cities') {
         const data = await adminApi.getAllCities();
-        setCities(data);
+        setCities([...data].sort((a, b) => a.id - b.id));
       } else if (tab === 'airports') {
         const data = await adminApi.getAllAirports();
-        setAirports(data);
+        setAirports([...data].sort((a, b) => a.id - b.id));
       } else if (tab === 'airplanes') {
         const data = await adminApi.getAllAirplanes();
-        setAirplanes(data);
+        setAirplanes([...data].sort((a, b) => a.id - b.id));
       } else if (tab === 'flights') {
         const data = await adminApi.getAllFlights();
-        setFlights(data);
+        setFlights([...data].sort((a, b) => a.id - b.id));
       }
     } catch (err) {
       showToast(extractApiError(err), 'error');
@@ -233,8 +284,24 @@ export default function AdminDashboard() {
                   {cities.map(c => (
                     <tr key={c.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                       <td style={{ padding: '0.5rem 0' }}>{c.id}</td>
-                      <td>{c.name}</td>
-                      <td><button className="btn btn-sm btn-outline" onClick={() => handleDeleteCity(c.id)}>Delete</button></td>
+                      <td>
+                        {editingId === c.id ? (
+                          <input value={editFormData.name} onChange={e => setEditFormData({ ...editFormData, name: e.target.value })} />
+                        ) : c.name}
+                      </td>
+                      <td>
+                        {editingId === c.id ? (
+                          <>
+                            <button className="btn btn-sm btn-primary" onClick={() => handleUpdate('city', c.id)}>Save</button>
+                            <button className="btn btn-sm btn-outline" onClick={cancelEdit} style={{ marginLeft: '0.5rem' }}>Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="btn btn-sm btn-outline" onClick={() => startEdit(c)}>Edit</button>
+                            <button className="btn btn-sm btn-outline" onClick={() => handleDeleteCity(c.id)} style={{ marginLeft: '0.5rem' }}>Delete</button>
+                          </>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -270,10 +337,34 @@ export default function AdminDashboard() {
                   {airports.map(a => (
                     <tr key={a.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                       <td style={{ padding: '0.5rem 0' }}>{a.id}</td>
-                      <td>{a.name}</td>
-                      <td>{a.city_id}</td>
-                      <td>{a.address}</td>
-                      <td><button className="btn btn-sm btn-outline" onClick={() => handleDeleteAirport(a.id)}>Delete</button></td>
+                      <td>
+                        {editingId === a.id ? (
+                          <input value={editFormData.name} onChange={e => setEditFormData({ ...editFormData, name: e.target.value })} style={{ width: '100px' }} />
+                        ) : a.name}
+                      </td>
+                      <td>
+                        {editingId === a.id ? (
+                          <input type="number" value={editFormData.city_id} onChange={e => setEditFormData({ ...editFormData, city_id: e.target.value })} style={{ width: '60px' }} />
+                        ) : a.city_id}
+                      </td>
+                      <td>
+                        {editingId === a.id ? (
+                          <input value={editFormData.address || ''} onChange={e => setEditFormData({ ...editFormData, address: e.target.value })} />
+                        ) : a.address}
+                      </td>
+                      <td>
+                        {editingId === a.id ? (
+                          <>
+                            <button className="btn btn-sm btn-primary" onClick={() => handleUpdate('airport', a.id)}>Save</button>
+                            <button className="btn btn-sm btn-outline" onClick={cancelEdit} style={{ marginLeft: '0.5rem' }}>Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="btn btn-sm btn-outline" onClick={() => startEdit(a)}>Edit</button>
+                            <button className="btn btn-sm btn-outline" onClick={() => handleDeleteAirport(a.id)} style={{ marginLeft: '0.5rem' }}>Delete</button>
+                          </>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -305,9 +396,29 @@ export default function AdminDashboard() {
                   {airplanes.map(a => (
                     <tr key={a.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                       <td style={{ padding: '0.5rem 0' }}>{a.id}</td>
-                      <td>{a.ModelNo || a.modelNo}</td>
-                      <td>{a.capacity}</td>
-                      <td><button className="btn btn-sm btn-outline" onClick={() => handleDeleteAirplane(a.id)}>Delete</button></td>
+                      <td>
+                        {editingId === a.id ? (
+                          <input value={editFormData.ModelNo || editFormData.modelNo} onChange={e => setEditFormData({ ...editFormData, ModelNo: e.target.value })} style={{ width: '100px' }} />
+                        ) : (a.ModelNo || a.modelNo)}
+                      </td>
+                      <td>
+                        {editingId === a.id ? (
+                          <input type="number" value={editFormData.capacity} onChange={e => setEditFormData({ ...editFormData, capacity: e.target.value })} style={{ width: '80px' }} />
+                        ) : a.capacity}
+                      </td>
+                      <td>
+                        {editingId === a.id ? (
+                          <>
+                            <button className="btn btn-sm btn-primary" onClick={() => handleUpdate('airplane', a.id)}>Save</button>
+                            <button className="btn btn-sm btn-outline" onClick={cancelEdit} style={{ marginLeft: '0.5rem' }}>Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="btn btn-sm btn-outline" onClick={() => startEdit(a)}>Edit</button>
+                            <button className="btn btn-sm btn-outline" onClick={() => handleDeleteAirplane(a.id)} style={{ marginLeft: '0.5rem' }}>Delete</button>
+                          </>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -370,20 +481,67 @@ export default function AdminDashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--color-border)', textAlign: 'left' }}>
-                    <th>ID</th><th>Flight No</th><th>Route (Airport IDs)</th><th>Departs</th><th>Arrives</th><th>Seats</th><th>Price</th><th>Actions</th>
+                    <th>ID</th><th>Flight No</th><th>Airplane ID</th><th>Route (Airport IDs)</th><th>Departs</th><th>Arrives</th><th>Seats</th><th>Price</th><th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {flights.map(f => (
                     <tr key={f.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                       <td style={{ padding: '0.5rem 0' }}>{f.id}</td>
-                      <td>{f.flightNo}</td>
-                      <td style={{ fontWeight: 500, color: 'var(--color-primary)' }}>{f.departure_airport_id} <span style={{ margin: '0 0.5rem' }}>✈️</span> {f.arrival_airport_id}</td>
-                      <td>{new Date(f.departureTime).toLocaleString()}</td>
-                      <td>{new Date(f.arrivalTime).toLocaleString()}</td>
-                      <td>{f.totalSeatsLeft}</td>
-                      <td>{f.price}</td>
-                      <td><button className="btn btn-sm btn-outline" onClick={() => handleDeleteFlight(f.id)}>Delete</button></td>
+                      <td>
+                        {editingId === f.id ? (
+                          <input value={editFormData.flightNo} onChange={e => setEditFormData({ ...editFormData, flightNo: e.target.value })} style={{ width: '80px' }} />
+                        ) : f.flightNo}
+                      </td>
+                      <td>
+                        {editingId === f.id ? (
+                          <input type="number" value={editFormData.airplaneId} onChange={e => setEditFormData({ ...editFormData, airplaneId: e.target.value })} style={{ width: '60px' }} />
+                        ) : f.airplane_id}
+                      </td>
+                      <td style={{ fontWeight: 500, color: 'var(--color-primary)' }}>
+                        {editingId === f.id ? (
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input type="number" placeholder="From" value={editFormData.departureAirportId} onChange={e => setEditFormData({ ...editFormData, departureAirportId: e.target.value })} style={{ width: '50px' }} />
+                            ✈️
+                            <input type="number" placeholder="To" value={editFormData.arrivalAirportId} onChange={e => setEditFormData({ ...editFormData, arrivalAirportId: e.target.value })} style={{ width: '50px' }} />
+                          </div>
+                        ) : (
+                          <>{f.departure_airport_id} <span style={{ margin: '0 0.5rem' }}>✈️</span> {f.arrival_airport_id}</>
+                        )}
+                      </td>
+                      <td>
+                        {editingId === f.id ? (
+                          <input type="datetime-local" value={editFormData.departureTime} onChange={e => setEditFormData({ ...editFormData, departureTime: e.target.value })} style={{ width: '130px' }} />
+                        ) : new Date(f.departureTime).toLocaleString()}
+                      </td>
+                      <td>
+                        {editingId === f.id ? (
+                          <input type="datetime-local" value={editFormData.arrivalTime} onChange={e => setEditFormData({ ...editFormData, arrivalTime: e.target.value })} style={{ width: '130px' }} />
+                        ) : new Date(f.arrivalTime).toLocaleString()}
+                      </td>
+                      <td>
+                        {editingId === f.id ? (
+                          <input type="number" value={editFormData.totalSeatsLeft} onChange={e => setEditFormData({ ...editFormData, totalSeatsLeft: e.target.value })} style={{ width: '60px' }} />
+                        ) : f.totalSeatsLeft}
+                      </td>
+                      <td>
+                        {editingId === f.id ? (
+                          <input type="number" value={editFormData.price} onChange={e => setEditFormData({ ...editFormData, price: e.target.value })} style={{ width: '80px' }} />
+                        ) : f.price}
+                      </td>
+                      <td>
+                        {editingId === f.id ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            <button className="btn btn-sm btn-primary" onClick={() => handleUpdate('flight', f.id)}>Save</button>
+                            <button className="btn btn-sm btn-outline" onClick={cancelEdit}>Cancel</button>
+                          </div>
+                        ) : (
+                          <>
+                            <button className="btn btn-sm btn-outline" onClick={() => startEdit(f)}>Edit</button>
+                            <button className="btn btn-sm btn-outline" onClick={() => handleDeleteFlight(f.id)} style={{ marginLeft: '0.2rem' }}>Delete</button>
+                          </>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -9,7 +9,7 @@ const schemas = require("../../utils/flight.validation");
  * /api/v1/flights:
  *   post:
  *     summary: Create a new flight
- *     tags: [Flights]
+ *     tags: [Admin-Flights]
  *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
  *       - bearerAuth: []
@@ -90,7 +90,7 @@ router.post(
  * /api/v1/flights/{id}:
  *   delete:
  *     summary: Delete a flight
- *     tags: [Flights]
+ *     tags: [Admin-Flights]
  *     description: "Access: ADMIN only"
  *     security:
  *       - bearerAuth: []
@@ -116,7 +116,7 @@ router.delete(
  * /api/v1/flights/{id}:
  *   patch:
  *     summary: Update a flight
- *     tags: [Flights]
+ *     tags: [Admin-Flights]
  *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
  *       - bearerAuth: []
@@ -148,7 +148,7 @@ router.patch(
  * /api/v1/flights/all:
  *   get:
  *     summary: Get all flights
- *     tags: [Flights]
+ *     tags: [Admin-Flights]
  *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
  *       - bearerAuth: []
@@ -167,7 +167,7 @@ router.get(
  * /api/v1/flights/{id}:
  *   get:
  *     summary: Get flight by ID
- *     tags: [Flights]
+ *     tags: [Admin-Flights]
  *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
  *       - bearerAuth: []
@@ -259,7 +259,7 @@ router.get(
  * /api/v1/flights/{id}/seats:
  *   patch:
  *     summary: Update flight seats (Admin or staff)
- *     tags: [Flights]
+ *     tags: [Admin-Flights]
  *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
  *       - bearerAuth: []

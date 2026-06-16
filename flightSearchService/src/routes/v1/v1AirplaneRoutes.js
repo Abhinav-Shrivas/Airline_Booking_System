@@ -8,7 +8,7 @@ const schemas = require("../../utils/flight.validation");
  * /api/v1/airplanes:
  *   post:
  *     summary: Create a new airplane
- *     tags: [Airplanes]
+ *     tags: [Admin-Airplanes]
  *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
  *       - bearerAuth: []
@@ -38,7 +38,7 @@ router.post("/",authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN"), v
  * /api/v1/airplanes/{id}:
  *   delete:
  *     summary: Delete an airplane
- *     tags: [Airplanes]
+ *     tags: [Admin-Airplanes]
  *     description: "Access: ADMIN only"
  *     security:
  *       - bearerAuth: []
@@ -59,7 +59,7 @@ router.delete("/:id",authMiddleware, authorizeMiddleware("ADMIN"), airplaneContr
  * /api/v1/airplanes/{id}:
  *   patch:
  *     summary: Update an airplane
- *     tags: [Airplanes]
+ *     tags: [Admin-Airplanes]
  *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
  *       - bearerAuth: []
@@ -89,7 +89,7 @@ router.patch("/:id", authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN
  * /api/v1/airplanes/{id}:
  *   get:
  *     summary: Get airplane by ID
- *     tags: [Airplanes]
+ *     tags: [Admin-Airplanes]
  *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
  *       - bearerAuth: []
@@ -110,7 +110,7 @@ router.get("/:id", authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN")
  * /api/v1/airplanes:
  *   get:
  *     summary: Get all airplanes
- *     tags: [Airplanes]
+ *     tags: [Admin-Airplanes]
  *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
  *       - bearerAuth: []

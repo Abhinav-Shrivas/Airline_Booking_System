@@ -16,6 +16,11 @@ export async function getAllCities() {
   return response.data.data;
 }
 
+export async function updateCity(id, data) {
+  const response = await flightAPI.patch(`/api/v1/cities/${id}`, data);
+  return response.data.data;
+}
+
 // Airports
 export async function createAirport(data) {
   const response = await flightAPI.post('/api/v1/airports', data);
@@ -29,6 +34,11 @@ export async function deleteAirport(id) {
 
 export async function getAllAirports() {
   const response = await flightAPI.get('/api/v1/airports');
+  return response.data.data;
+}
+
+export async function updateAirport(id, data) {
+  const response = await flightAPI.patch(`/api/v1/airports/${id}`, data);
   return response.data.data;
 }
 
@@ -48,6 +58,11 @@ export async function getAllAirplanes() {
   return response.data.data;
 }
 
+export async function updateAirplane(id, data) {
+  const response = await flightAPI.patch(`/api/v1/airplanes/${id}`, data);
+  return response.data.data;
+}
+
 // Flights
 export async function createFlight(data) {
   const response = await flightAPI.post('/api/v1/flights', data);
@@ -61,6 +76,11 @@ export async function deleteFlight(id) {
 
 export async function getAllFlights() {
   const response = await flightAPI.get('/api/v1/flights/all');
+  return response.data.data;
+}
+
+export async function updateFlight(id, data) {
+  const response = await flightAPI.patch(`/api/v1/flights/${id}`, data);
   return response.data.data;
 }
 

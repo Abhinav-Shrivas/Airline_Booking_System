@@ -9,7 +9,7 @@ const schemas = require("../../utils/flight.validation");
  * /api/v1/airports:
  *   post:
  *     summary: Create a new airport
- *     tags: [Airports]
+ *     tags: [Admin-Airports]
  *     description: "Access: ADMIN only"
  *     security:
  *       - bearerAuth: []
@@ -42,7 +42,7 @@ router.post("/",authMiddleware, authorizeMiddleware("ADMIN"), validate(schemas.c
  * /api/v1/airports/{id}:
  *   delete:
  *     summary: Delete an airport
- *     tags: [Airports]
+ *     tags: [Admin-Airports]
  *     description: "Access: ADMIN only"
  *     security:
  *       - bearerAuth: []
@@ -63,7 +63,7 @@ router.delete("/:id",authMiddleware, authorizeMiddleware("ADMIN"), airportContro
  * /api/v1/airports/{id}:
  *   patch:
  *     summary: Update an airport
- *     tags: [Airports]
+ *     tags: [Admin-Airports]
  *     description: "Access: ADMIN only"
  *     security:
  *       - bearerAuth: []
@@ -113,7 +113,7 @@ router.get("/:id", airportController.fetchAirport);
  * /api/v1/airports:
  *   get:
  *     summary: Get all airports
- *     tags: [Airports]
+ *     tags: [Admin-Airports]
  *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
  *       - bearerAuth: []

@@ -9,7 +9,7 @@ const schemas = require("../../utils/flight.validation");
  * /api/v1/cities:
  *   post:
  *     summary: Create a new city
- *     tags: [Cities]
+ *     tags: [Admin-Cities]
  *     description: "Access: ADMIN only"
  *     security:
  *       - bearerAuth: []
@@ -32,7 +32,7 @@ router.post("/",authMiddleware, authorizeMiddleware("ADMIN"), validate(schemas.c
  * /api/v1/cities/{id}:
  *   delete:
  *     summary: Delete a city
- *     tags: [Cities]
+ *     tags: [Admin-Cities]
  *     description: "Access: ADMIN only"
  *     security:
  *       - bearerAuth: []
@@ -53,7 +53,7 @@ router.delete("/:id",authMiddleware, authorizeMiddleware("ADMIN"), cityControlle
  * /api/v1/cities/{id}:
  *   patch:
  *     summary: Update a city
- *     tags: [Cities]
+ *     tags: [Admin-Cities]
  *     description: "Access: ADMIN only"
  *     security:
  *       - bearerAuth: []
@@ -101,7 +101,7 @@ router.get("/:id", cityController.fetchCity);
  * /api/v1/cities:
  *   get:
  *     summary: Get all cities
- *     tags: [Cities]
+ *     tags: [Admin-Cities]
  *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
  *       - bearerAuth: []
