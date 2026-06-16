@@ -18,8 +18,8 @@ const setAndStartServer = async () => {
   // CORS — allow frontend origins with credentials (HttpOnly cookies)
   app.use((req, res, next) => {
     const allowedOrigins = [
-      "http://localhost:5173",
       "http://localhost:3000",
+      "https://localhost:3000",
       process.env.FRONTEND_URL,
     ].filter(Boolean);
     const origin = req.headers.origin;

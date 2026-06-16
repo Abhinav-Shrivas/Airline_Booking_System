@@ -139,5 +139,21 @@ services:
       auth-service:
         condition: service_started
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_AUTH_SERVICE_URL: http://localhost:5001
+      VITE_FLIGHT_SERVICE_URL: http://localhost:5000
+      VITE_BOOKING_SERVICE_URL: http://localhost:5003
+      VITE_NOTIFICATION_SERVICE_URL: http://localhost:5004
+    depends_on:
+      - auth-service
+      - flight-service
+      - booking-service
+
 volumes:
   pgdata:

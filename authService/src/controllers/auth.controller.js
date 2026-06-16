@@ -74,7 +74,7 @@ const googleCallback = asyncHandler(async (req, res) => {
   );
 
   // Redirect to frontend with access token
-  const frontendURL = process.env.FRONTEND_URL || "http://localhost:5173";
+  const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
   const redirectUrl = `${frontendURL}/auth/google/callback?accessToken=${encodeURIComponent(result.accessToken)}&email=${encodeURIComponent(result.user.email)}`;
   res.redirect(redirectUrl);
 });
