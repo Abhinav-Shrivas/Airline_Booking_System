@@ -8,13 +8,19 @@ import {
   getCityName,
 } from '../utils/formatters';
 
-export default function FlightCard({ flight, passengers = 1 }) {
+export default function FlightCard({ 
+  flight, 
+  passengers = 1,
+  isRoundTripMode = false,
+  isSelected = false,
+  onSelect = null
+}) {
   const { isAuthenticated } = useAuth();
   const displayPrice = flight.totalPrice ?? flight.price * passengers;
   const urgentSeats = flight.totalSeatsLeft < 10;
 
   return (
-    <article className="flight-card">
+    <article className={`flight-card ${isSelected ? 'selected' : ''}`} style={isSelected ? { borderColor: 'var(--primary-color)', boxShadow: '0 0 0 2px var(--primary-color)' } : {}}>
       <div className="flight-card-header">
         <div>
           <span className="flight-number">{flight.flightNo}</span>
@@ -57,7 +63,15 @@ export default function FlightCard({ flight, passengers = 1 }) {
           )}
         </div>
 
-        {isAuthenticated ? (
+        {isRoundTripMode ? (
+          <button
+            type="button"
+            className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => onSelect && onSelect(flight)}
+          >
+            {isSelected ? 'Selected ✓' : 'Select'}
+          </button>
+        ) : isAuthenticated ? (
           <Link
             to={`/book/${flight.id}`}
             state={{ passengers }}

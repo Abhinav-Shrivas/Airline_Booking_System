@@ -29,6 +29,14 @@ export default function App() {
                 <Route path="/auth/google/callback" element={<GoogleCallback />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route
+                  path="/book/round"
+                  element={
+                    <ProtectedRoute>
+                      <Book />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/book/:flightId"
                   element={
                     <ProtectedRoute>

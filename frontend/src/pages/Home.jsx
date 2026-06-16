@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CityAutocomplete from '../components/CityAutocomplete';
 import FlightCard from '../components/FlightCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useColdStartLoading } from '../hooks/useColdStartLoading';
 import { useFlightSearch } from '../hooks/useFlightSearch';
-import { getDefaultSearchDate, getMinSearchDate } from '../utils/formatters';
+import { getDefaultSearchDate, getMinSearchDate, formatPrice } from '../utils/formatters';
 
 export default function Home() {
   const [fromCity, setFromCity] = useState(null);
@@ -20,6 +21,10 @@ export default function Home() {
   const { flights, loading, error, searched, searchFlights } = useFlightSearch();
   const isColdStart = useColdStartLoading();
   const lastSearchRef = useRef(null);
+  const navigate = useNavigate();
+
+  const [selectedOutbound, setSelectedOutbound] = useState(null);
+  const [selectedReturn, setSelectedReturn] = useState(null);
 
   const buildSearchParams = (overrides = {}) => ({
     from: fromCity?.id,
@@ -60,6 +65,8 @@ export default function Home() {
 
     const params = buildSearchParams();
     lastSearchRef.current = params;
+    setSelectedOutbound(null);
+    setSelectedReturn(null);
     searchFlights(params);
   };
 
@@ -93,6 +100,12 @@ export default function Home() {
 
   // Show "Show more" only when we got exactly 5 results (the default limit) and haven't expanded yet
   const showMoreButton = !moreFlights && hasResults && !isRoundTrip && outboundFlights.length === 5;
+
+  const handleBookRoundTrip = () => {
+    if (selectedOutbound && selectedReturn) {
+      navigate(`/book/round?outbound=${selectedOutbound.id}&return=${selectedReturn.id}`, { state: { passengers } });
+    }
+  };
 
   return (
     <div className="page home-page">
@@ -223,7 +236,14 @@ export default function Home() {
                 <h3 className="section-subtitle">Outbound</h3>
                 {outboundFlights.length > 0 ? (
                   outboundFlights.map((flight) => (
-                    <FlightCard key={flight.id} flight={flight} passengers={passengers} />
+                    <FlightCard 
+                      key={flight.id} 
+                      flight={flight} 
+                      passengers={passengers} 
+                      isRoundTripMode={true}
+                      isSelected={selectedOutbound?.id === flight.id}
+                      onSelect={() => setSelectedOutbound(flight)}
+                    />
                   ))
                 ) : (
                   <p className="muted">No outbound flights found for this date.</p>
@@ -232,7 +252,14 @@ export default function Home() {
                 <h3 className="section-subtitle" style={{ marginTop: '2rem' }}>Return</h3>
                 {returnFlightsList.length > 0 ? (
                   returnFlightsList.map((flight) => (
-                    <FlightCard key={flight.id} flight={flight} passengers={passengers} />
+                    <FlightCard 
+                      key={flight.id} 
+                      flight={flight} 
+                      passengers={passengers} 
+                      isRoundTripMode={true}
+                      isSelected={selectedReturn?.id === flight.id}
+                      onSelect={() => setSelectedReturn(flight)}
+                    />
                   ))
                 ) : (
                   <p className="muted">No return flights found for this date.</p>
@@ -260,6 +287,33 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* Sticky Footer for Round Trip */}
+      {isRoundTrip && hasResults && (
+        <div className="round-trip-footer card">
+          <div className="round-trip-summary">
+            <div className="summary-item">
+              <strong>Outbound:</strong>{' '}
+              {selectedOutbound ? `${selectedOutbound.flightNo}` : 'Select a flight'}
+            </div>
+            <div className="summary-item">
+              <strong>Return:</strong>{' '}
+              {selectedReturn ? `${selectedReturn.flightNo}` : 'Select a flight'}
+            </div>
+            <div className="summary-price">
+              <strong>Total:</strong>{' '}
+              {formatPrice(((selectedOutbound?.price || 0) + (selectedReturn?.price || 0)) * passengers)}
+            </div>
+          </div>
+          <button 
+            className="btn btn-primary" 
+            disabled={!selectedOutbound || !selectedReturn}
+            onClick={handleBookRoundTrip}
+          >
+            Continue to passenger details
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,6 +5,11 @@ export async function createBooking(payload) {
   return data.data;
 }
 
+export async function createBookingRound(payload) {
+  const { data } = await bookingAPI.post('/api/v1/bookings/round', payload);
+  return data.data;
+}
+
 export async function getUserBookings() {
   const { data } = await bookingAPI.get('/api/v1/bookings');
   return data.data;

@@ -27,18 +27,6 @@ export default function MyBookings() {
     try {
       const data = await getUserBookings();
       setBookings(data);
-
-      const flightMap = {};
-      await Promise.all(
-        data.map(async (booking) => {
-          try {
-            flightMap[booking.flightId] = await getFlightById(booking.flightId);
-          } catch {
-            flightMap[booking.flightId] = null;
-          }
-        })
-      );
-      setFlights(flightMap);
     } catch (err) {
       setError(extractApiError(err));
     } finally {
@@ -107,7 +95,6 @@ export default function MyBookings() {
           <BookingCard
             key={booking.id}
             booking={booking}
-            flight={flights[booking.flightId]}
             onCancel={handleCancel}
             onRefund={handleRefund}
             actionLoading={actionLoading}

@@ -1085,3 +1085,41 @@ select {
   font-size: 0.9rem;
   color: var(--color-secondary);
 }
+
+/* Round Trip */
+.round-trip-footer {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: none;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+  background: var(--color-surface);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.round-trip-summary {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.summary-item {
+  font-size: 0.9rem;
+}
+
+.summary-price {
+  font-size: 1.1rem;
+  color: var(--color-accent);
+}
+
+.flight-card.selected {
+  background-color: rgba(49, 130, 206, 0.03);
+}

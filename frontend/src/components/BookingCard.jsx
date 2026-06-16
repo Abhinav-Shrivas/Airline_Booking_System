@@ -10,7 +10,6 @@ import {
 
 export default function BookingCard({
   booking,
-  flight,
   onCancel,
   onRefund,
   actionLoading,
@@ -20,40 +19,52 @@ export default function BookingCard({
     className: 'status-default',
   };
 
+  const outboundFlight = booking.flightSnapshot?.outbound;
+  const returnFlight = booking.flightSnapshot?.return;
+
   const showPayNow = booking.status === 'INITIATED';
   const showCancel = booking.status === 'INITIATED';
+  
+  // A booking can be refunded if the FIRST flight (outbound) is > 24h away
   const showRefund =
     booking.status === 'CONFIRMED' &&
-    flight &&
-    canRefundBooking(flight.departureTime);
+    outboundFlight &&
+    canRefundBooking(outboundFlight.departureTime);
 
   return (
     <article className="booking-card">
       <div className="booking-card-header">
         <div>
           <h3>Booking #{booking.id}</h3>
-          {flight && (
+          {outboundFlight && (
             <p className="booking-flight-meta">
-              {flight.flightNo} · {getAirlineName(flight.flightNo)}
+              {outboundFlight.flightNo} · {getAirlineName(outboundFlight.flightNo)}
+              {returnFlight && ` | ${returnFlight.flightNo} · ${getAirlineName(returnFlight.flightNo)}`}
             </p>
           )}
         </div>
         <span className={`status-badge ${statusInfo.className}`}>{statusInfo.label}</span>
       </div>
 
-      {flight ? (
+      {outboundFlight ? (
         <div className="booking-details">
           <p>
-            {formatDate(flight.departureTime)} · {formatTime(flight.departureTime)} →{' '}
-            {formatTime(flight.arrivalTime)}
+            <strong>Outbound:</strong> {formatDate(outboundFlight.departureTime)} · {formatTime(outboundFlight.departureTime)} →{' '}
+            {formatTime(outboundFlight.arrivalTime)}
           </p>
-          <p>
+          {returnFlight && (
+            <p>
+              <strong>Return:</strong> {formatDate(returnFlight.departureTime)} · {formatTime(returnFlight.departureTime)} →{' '}
+              {formatTime(returnFlight.arrivalTime)}
+            </p>
+          )}
+          <p style={{ marginTop: '0.75rem' }}>
             {booking.noOfSeats} seat{booking.noOfSeats > 1 ? 's' : ''} ·{' '}
-            {formatPrice(booking.totalCost)}
+            <strong style={{ color: 'var(--color-primary)' }}>{formatPrice(booking.totalCost)}</strong>
           </p>
         </div>
       ) : (
-        <p className="muted">Flight ID: {booking.flightId}</p>
+        <p className="muted">Flight ID: {booking.outboundFlightId || booking.flightId}</p>
       )}
 
       {booking.passengers?.length > 0 && (
@@ -89,7 +100,7 @@ export default function BookingCard({
             Cancel & Refund
           </button>
         )}
-        {booking.status === 'CONFIRMED' && flight && !canRefundBooking(flight.departureTime) && (
+        {booking.status === 'CONFIRMED' && outboundFlight && !canRefundBooking(outboundFlight.departureTime) && (
           <span className="muted small">Cancellation not available within 24h of departure</span>
         )}
       </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { createBooking } from '../api/bookings';
+import { createBooking, createBookingRound } from '../api/bookings';
 import { getFlightById } from '../api/flights';
 import { useColdStartLoading } from '../hooks/useColdStartLoading';
 import { useToast } from '../context/ToastContext';
@@ -28,7 +28,13 @@ export default function Book() {
 
   const noOfSeats = location.state?.passengers || 1;
 
-  const [flight, setFlight] = useState(null);
+  const [searchParams] = useSearchParams();
+  const isRoundTrip = location.pathname.includes('/book/round');
+  const outboundFlightId = isRoundTrip ? searchParams.get('outbound') : flightId;
+  const returnFlightId = isRoundTrip ? searchParams.get('return') : null;
+
+  const [flight, setFlight] = useState(null); // Used for single flight or outbound flight
+  const [returnFlightObj, setReturnFlightObj] = useState(null);
   const [passengers, setPassengers] = useState(
     Array.from({ length: noOfSeats }, createEmptyPassenger)
   );
@@ -41,8 +47,17 @@ export default function Book() {
     async function loadFlight() {
       setLoading(true);
       try {
-        const data = await getFlightById(flightId);
-        setFlight(data);
+        if (isRoundTrip) {
+          const [outData, retData] = await Promise.all([
+            getFlightById(outboundFlightId),
+            getFlightById(returnFlightId)
+          ]);
+          setFlight(outData);
+          setReturnFlightObj(retData);
+        } else {
+          const data = await getFlightById(outboundFlightId);
+          setFlight(data);
+        }
       } catch (err) {
         setError(extractApiError(err));
       } finally {
@@ -50,7 +65,7 @@ export default function Book() {
       }
     }
     loadFlight();
-  }, [flightId]);
+  }, [outboundFlightId, returnFlightId, isRoundTrip]);
 
   const updatePassenger = (index, field, value) => {
     setPassengers((prev) =>
@@ -66,16 +81,30 @@ export default function Book() {
     setSubmitting(true);
 
     try {
-      const payload = {
-        flightId: Number(flightId),
-        noOfSeats,
-        passengers: passengers.map((p) => ({
-          fullName: p.fullName.trim(),
-          age: Number(p.age),
-        })),
-      };
-
-      const result = await createBooking(payload);
+      let result;
+      if (isRoundTrip) {
+        const payload = {
+          outboundFlightId: Number(outboundFlightId),
+          returnFlightId: Number(returnFlightId),
+          noOfSeats,
+          passengers: passengers.map((p) => ({
+            fullName: p.fullName.trim(),
+            age: Number(p.age),
+          })),
+        };
+        result = await createBookingRound(payload);
+      } else {
+        const payload = {
+          flightId: Number(outboundFlightId),
+          noOfSeats,
+          passengers: passengers.map((p) => ({
+            fullName: p.fullName.trim(),
+            age: Number(p.age),
+          })),
+        };
+        result = await createBooking(payload);
+      }
+      
       setBooking(result);
       showToast('Booking created! Proceed to payment.', 'success');
     } catch (err) {
@@ -109,7 +138,8 @@ export default function Book() {
       <div className="book-header card">
         <h1>Complete your booking</h1>
         {flight && (
-          <div className="flight-summary">
+          <div className="flight-summary" style={{ marginBottom: isRoundTrip ? '1rem' : '0' }}>
+            {isRoundTrip && <h4>Outbound Flight</h4>}
             <p>
               <strong>{flight.flightNo}</strong> · {getAirlineName(flight.flightNo)}
             </p>
@@ -118,8 +148,31 @@ export default function Book() {
               {formatTime(flight.departureTime)} → {formatTime(flight.arrivalTime)} ·{' '}
               {flight.duration || formatDuration(flight.durationInMinutes)}
             </p>
+            {!isRoundTrip && (
+              <p className="flight-summary-price">
+                {formatPrice(flight.price * noOfSeats)} for {noOfSeats} passenger
+                {noOfSeats > 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+        )}
+        {returnFlightObj && (
+          <div className="flight-summary" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+            <h4>Return Flight</h4>
+            <p>
+              <strong>{returnFlightObj.flightNo}</strong> · {getAirlineName(returnFlightObj.flightNo)}
+            </p>
+            <p>
+              {formatDate(returnFlightObj.departureTime)} ·{' '}
+              {formatTime(returnFlightObj.departureTime)} → {formatTime(returnFlightObj.arrivalTime)} ·{' '}
+              {returnFlightObj.duration || formatDuration(returnFlightObj.durationInMinutes)}
+            </p>
+          </div>
+        )}
+        {isRoundTrip && flight && returnFlightObj && (
+          <div className="flight-summary" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1rem' }}>
             <p className="flight-summary-price">
-              {formatPrice(flight.price * noOfSeats)} for {noOfSeats} passenger
+              Total: {formatPrice((flight.price + returnFlightObj.price) * noOfSeats)} for {noOfSeats} passenger
               {noOfSeats > 1 ? 's' : ''}
             </p>
           </div>
