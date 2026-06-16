@@ -13,6 +13,7 @@ import GoogleCallback from './pages/GoogleCallback';
 import ForgotPassword from './pages/ForgotPassword';
 import Notifications from './pages/Notifications';
 import AdminDashboard from './pages/AdminDashboard';
+import MobileWarning from './components/MobileWarning';
 import './styles/global.css';
 
 import { useEffect } from 'react';
@@ -34,6 +35,7 @@ export default function App() {
       <ToastProvider>
         <BrowserRouter>
           <div className="app">
+            <MobileWarning />
             <Navbar />
             <main className="main-content">
               <Routes>
