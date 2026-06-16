@@ -102,6 +102,9 @@ router.get("/:id", cityController.fetchCity);
  *   get:
  *     summary: Get all cities
  *     tags: [Cities]
+ *     description: "Access: AIRLINE_STAFF, ADMIN"
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: search
@@ -112,6 +115,6 @@ router.get("/:id", cityController.fetchCity);
  *       200:
  *         description: List of cities
  */
-router.get("/", cityController.getAllCities);
+router.get("/",authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN"), cityController.getAllCities);
 
 module.exports = router;

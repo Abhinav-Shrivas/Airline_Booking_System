@@ -27,7 +27,7 @@ const createFlight = Joi.object({
   departure_airport_id: Joi.number().integer().required(),
   arrivalTime: Joi.date().iso().required(),
   departureTime: Joi.date().iso().required(),
-  totalSeatsLeft: Joi.number().integer().min(0).required(),
+  totalSeatsLeft: Joi.number().integer().min(0).optional(),
   boardingGate: Joi.string().optional(),
 });
 

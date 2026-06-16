@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   const [newAirplane, setNewAirplane] = useState({ modelNo: '', capacity: '' });
   const [newFlight, setNewFlight] = useState({ 
     flightNo: '', airplaneId: '', departureAirportId: '', arrivalAirportId: '', 
-    departureTime: '', arrivalTime: '', price: '', boardingGate: '' 
+    departureTime: '', arrivalTime: '', price: '', boardingGate: '', totalSeatsLeft: '' 
   });
   
   // Booking admin action state
@@ -136,15 +136,21 @@ export default function AdminDashboard() {
   const handleCreateFlight = async (e) => {
     e.preventDefault();
     try {
-      await adminApi.createFlight({
-        ...newFlight,
-        airplaneId: Number(newFlight.airplaneId),
-        departureAirportId: Number(newFlight.departureAirportId),
-        arrivalAirportId: Number(newFlight.arrivalAirportId),
-        price: Number(newFlight.price)
-      });
+      const payload = {
+        flightNo: newFlight.flightNo,
+        airplane_id: Number(newFlight.airplaneId),
+        departure_airport_id: Number(newFlight.departureAirportId),
+        arrival_airport_id: Number(newFlight.arrivalAirportId),
+        departureTime: newFlight.departureTime,
+        arrivalTime: newFlight.arrivalTime,
+        price: Number(newFlight.price),
+        boardingGate: newFlight.boardingGate || undefined,
+        totalSeatsLeft: newFlight.totalSeatsLeft ? Number(newFlight.totalSeatsLeft) : undefined
+      };
+      
+      await adminApi.createFlight(payload);
       showToast('Flight created successfully', 'success');
-      setNewFlight({ flightNo: '', airplaneId: '', departureAirportId: '', arrivalAirportId: '', departureTime: '', arrivalTime: '', price: '', boardingGate: '' });
+      setNewFlight({ flightNo: '', airplaneId: '', departureAirportId: '', arrivalAirportId: '', departureTime: '', arrivalTime: '', price: '', boardingGate: '', totalSeatsLeft: '' });
       loadData('flights');
     } catch (err) {
       showToast(extractApiError(err), 'error');
@@ -312,6 +318,14 @@ export default function AdminDashboard() {
           {activeTab === 'flights' && (
             <div>
               <h2>Manage Flights</h2>
+              <div className="muted" style={{ marginBottom: '1.5rem', fontSize: '0.9rem', background: 'var(--color-bg-alt)', padding: '1rem', borderRadius: '8px' }}>
+                <p style={{ margin: '0 0 0.5rem 0' }}><strong>Note:</strong> The "Route" column visually represents the journey. For example, a route showing <strong>"1 ✈️ 2"</strong> means:</p>
+                <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
+                  <li><strong>Departure Airport ID (1):</strong> The airport from which the flight will take off.</li>
+                  <li><strong>Arrival Airport ID (2):</strong> The destination airport where the flight will land.</li>
+                  <li><strong>Time Rule:</strong> The Departure Time must always be strictly earlier than the Arrival Time.</li>
+                </ul>
+              </div>
               <form className="form-group" onSubmit={handleCreateFlight} style={{ marginBottom: '2rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label>Flight No</label>
@@ -345,6 +359,10 @@ export default function AdminDashboard() {
                   <label>Gate</label>
                   <input value={newFlight.boardingGate} onChange={e => setNewFlight({ ...newFlight, boardingGate: e.target.value })} />
                 </div>
+                <div>
+                  <label>Total Seats Left (Optional)</label>
+                  <input type="number" placeholder="Defaults to Capacity" value={newFlight.totalSeatsLeft} onChange={e => setNewFlight({ ...newFlight, totalSeatsLeft: e.target.value })} />
+                </div>
                 <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                   <button className="btn btn-primary" type="submit">Add Flight</button>
                 </div>
@@ -352,7 +370,7 @@ export default function AdminDashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--color-border)', textAlign: 'left' }}>
-                    <th>ID</th><th>Flight No</th><th>From (Airport ID)</th><th>To (Airport ID)</th><th>Departs</th><th>Arrives</th><th>Price</th><th>Actions</th>
+                    <th>ID</th><th>Flight No</th><th>Route (Airport IDs)</th><th>Departs</th><th>Arrives</th><th>Seats</th><th>Price</th><th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -360,10 +378,10 @@ export default function AdminDashboard() {
                     <tr key={f.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                       <td style={{ padding: '0.5rem 0' }}>{f.id}</td>
                       <td>{f.flightNo}</td>
-                      <td>{f.departure_airport_id}</td>
-                      <td>{f.arrival_airport_id}</td>
+                      <td style={{ fontWeight: 500, color: 'var(--color-primary)' }}>{f.departure_airport_id} <span style={{ margin: '0 0.5rem' }}>✈️</span> {f.arrival_airport_id}</td>
                       <td>{new Date(f.departureTime).toLocaleString()}</td>
                       <td>{new Date(f.arrivalTime).toLocaleString()}</td>
+                      <td>{f.totalSeatsLeft}</td>
                       <td>{f.price}</td>
                       <td><button className="btn btn-sm btn-outline" onClick={() => handleDeleteFlight(f.id)}>Delete</button></td>
                     </tr>

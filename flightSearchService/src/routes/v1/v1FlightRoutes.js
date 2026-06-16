@@ -15,6 +15,13 @@ const schemas = require("../../utils/flight.validation");
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
+ *       description: |
+ *         Flight creation rules:
+ *         - departure_airport_id is the airport from which the flight takes off.
+ *         - arrival_airport_id is the airport where the flight lands.
+ *         - arrivalTime must be later than departureTime.
+ *         - totalSeatsLeft is optional. If omitted, it defaults to the airplane's capacity.
+ *         - If provided, totalSeatsLeft cannot exceed the capacity of the selected airplane.
  *       content:
  *         application/json:
  *           schema:
@@ -27,7 +34,6 @@ const schemas = require("../../utils/flight.validation");
  *               - departureTime
  *               - arrivalTime
  *               - price
- *               - totalSeatsLeft
  *             properties:
  *               flightNo:
  *                 type: string
@@ -35,32 +41,42 @@ const schemas = require("../../utils/flight.validation");
  *               airplane_id:
  *                 type: integer
  *                 example: 1
+ *                 description: ID of the airplane assigned to this flight.
  *               departure_airport_id:
  *                 type: integer
  *                 example: 1
+ *                 description: ID of the airport from which the flight takes off.
  *               arrival_airport_id:
  *                 type: integer
  *                 example: 2
+ *                 description: ID of the airport where the flight lands.
  *               departureTime:
  *                 type: string
  *                 format: date-time
  *                 example: 2026-06-15T08:00:00Z
+ *                 description: Scheduled departure time.
  *               arrivalTime:
  *                 type: string
  *                 format: date-time
  *                 example: 2026-06-15T10:30:00Z
+ *                 description: Must be later than departureTime.
  *               price:
  *                 type: integer
  *                 example: 5500
+ *                 description: Ticket price per seat.
  *               totalSeatsLeft:
  *                 type: integer
  *                 example: 180
+ *                 description: Optional. Defaults to the airplane capacity if omitted. Cannot exceed the selected airplane's capacity.
  *               boardingGate:
  *                 type: string
  *                 example: G4
+ *                 description: Boarding gate for the flight.
  *     responses:
  *       201:
  *         description: Flight created
+ *       400:
+ *         description: Invalid request data or business rule violation
  */
 router.post(
   "/",
@@ -152,6 +168,9 @@ router.get(
  *   get:
  *     summary: Get flight by ID
  *     tags: [Flights]
+ *     description: "Access: AIRLINE_STAFF, ADMIN"
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -163,7 +182,12 @@ router.get(
  *       200:
  *         description: Flight details
  */
-router.get("/:id", flightController.fetchFlight);
+router.get(
+  "/:id",
+  authMiddleware,
+  authorizeMiddleware("AIRLINE_STAFF", "ADMIN"),
+  flightController.fetchFlight,
+);
 /**
  * @swagger
  * /api/v1/flights:

@@ -214,12 +214,27 @@ class FlightService extends CrudService {
 
   // Override CrudService methods to add cache invalidation
   async create(data) {
+    const airplane = await airplaneRepository.fetch(data.airplane_id);
+    if (data.totalSeatsLeft) {
+      if (data.totalSeatsLeft > airplane.capacity) {
+        throw new AppError("Capacity exceeded", 409);
+      }
+    }
+    else{
+      data.totalSeatsLeft = airplane.capacity;
+    }
     const result = await super.create(data);
     await this._clearFlightCache();
     return result;
   }
 
   async update(id, data) {
+    if (data.totalSeatsLeft) {
+      const airplane = await airplaneRepository.fetch(data.airplane_id);
+      if (data.totalSeatsLeft > airplane.capacity) {
+        throw new AppError("Capacity exceeded", 409);
+      }
+    }
     const result = await super.update(id, data);
     await this._clearFlightCache();
     return result;
