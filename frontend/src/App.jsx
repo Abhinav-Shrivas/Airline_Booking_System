@@ -15,7 +15,20 @@ import Notifications from './pages/Notifications';
 import AdminDashboard from './pages/AdminDashboard';
 import './styles/global.css';
 
+import { useEffect } from 'react';
+import { authAPI, flightAPI, bookingAPI, notificationAPI } from './api/axios';
+
 export default function App() {
+  useEffect(() => {
+    // Ping all services on initial load to wake them up from Render free tier sleep
+    Promise.allSettled([
+      authAPI.get('/health'),
+      flightAPI.get('/health'),
+      bookingAPI.get('/health'),
+      notificationAPI.get('/health')
+    ]);
+  }, []);
+
   return (
     <AuthProvider>
       <ToastProvider>
