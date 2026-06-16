@@ -34,9 +34,18 @@ const deleteAirport = asyncHandler(async (req, res) => {
   });
 });
 
+const getAllAirports = asyncHandler(async (req, res) => {
+  const data = await AirportService.fetchAll();
+  successResponse(res, {
+    data,
+    message: "Successfully fetched all Airports.",
+  });
+});
+
 module.exports = {
   createAirport,
   fetchAirport,
   updateAirport,
   deleteAirport,
+  getAllAirports,
 };

@@ -25,6 +25,11 @@ export default function Navbar() {
               <Link to="/notifications" className="nav-link">
                 Notifications
               </Link>
+              {user?.roles?.includes('ADMIN') && (
+                <Link to="/admin" className="nav-link" style={{ color: 'var(--color-warning)' }}>
+                  Manage as Admin
+                </Link>
+              )}
               <span className="nav-user">Hi, {user?.name}</span>
               <button type="button" className="btn btn-ghost" onClick={handleLogout}>
                 Logout

@@ -13,6 +13,11 @@ class CrudRepository {
     return response;
   }
 
+  async fetchAll() {
+    const response = await this.newModel.findAll();
+    return response;
+  }
+
   async update(id, data) {
     await this.newModel.update(data, {
       where: {

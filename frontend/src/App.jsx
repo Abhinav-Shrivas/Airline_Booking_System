@@ -12,6 +12,7 @@ import Register from './pages/Register';
 import GoogleCallback from './pages/GoogleCallback';
 import ForgotPassword from './pages/ForgotPassword';
 import Notifications from './pages/Notifications';
+import AdminDashboard from './pages/AdminDashboard';
 import './styles/global.css';
 
 export default function App() {
@@ -65,6 +66,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <Notifications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
                     </ProtectedRoute>
                   }
                 />

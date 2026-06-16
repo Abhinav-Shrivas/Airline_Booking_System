@@ -35,9 +35,18 @@ const deleteAirplane = asyncHandler(async (req, res) => {
   });
 });
 
+const getAllAirplanes = asyncHandler(async (req, res) => {
+  const data = await AirplaneService.fetchAll();
+  successResponse(res, {
+    data,
+    message: "Successfully fetched all Airplanes.",
+  });
+});
+
 module.exports = {
   createAirplane,
   fetchAirplane,
   updateAirplane,
   deleteAirplane,
+  getAllAirplanes,
 };

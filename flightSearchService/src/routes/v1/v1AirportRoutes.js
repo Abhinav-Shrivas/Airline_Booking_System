@@ -108,5 +108,23 @@ router.patch("/:id",authMiddleware, authorizeMiddleware("ADMIN"), airportControl
  *         description: Airport details
  */
 router.get("/:id", airportController.fetchAirport);
+/**
+ * @swagger
+ * /api/v1/airports:
+ *   get:
+ *     summary: Get all airports
+ *     tags: [Airports]
+ *     description: "Access: AIRLINE_STAFF, ADMIN"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of airports
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ */
+router.get("/", authMiddleware, authorizeMiddleware("ADMIN"), airportController.getAllAirports);
 
 module.exports = router;

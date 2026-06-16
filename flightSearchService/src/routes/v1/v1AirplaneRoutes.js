@@ -105,5 +105,23 @@ router.patch("/:id", authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN
  *         description: Airplane details
  */
 router.get("/:id", authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN"), airplaneController.fetchAirplane);
+/**
+ * @swagger
+ * /api/v1/airplanes:
+ *   get:
+ *     summary: Get all airplanes
+ *     tags: [Airplanes]
+ *     description: "Access: AIRLINE_STAFF, ADMIN"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of airplanes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ */
+router.get("/", authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN"), airplaneController.getAllAirplanes);
 
 module.exports = router;

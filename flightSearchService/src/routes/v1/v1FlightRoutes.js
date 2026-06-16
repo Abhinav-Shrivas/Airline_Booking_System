@@ -129,6 +129,25 @@ router.patch(
 );
 /**
  * @swagger
+ * /api/v1/flights/all:
+ *   get:
+ *     summary: Get all flights
+ *     tags: [Flights]
+ *     description: "Access: AIRLINE_STAFF, ADMIN"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all flights
+ */
+router.get(
+  "/all",
+  authMiddleware,
+  authorizeMiddleware("AIRLINE_STAFF", "ADMIN"),
+  flightController.getAllFlights,
+);
+/**
+ * @swagger
  * /api/v1/flights/{id}:
  *   get:
  *     summary: Get flight by ID

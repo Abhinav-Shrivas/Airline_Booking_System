@@ -8,6 +8,9 @@ class CityRepository extends CrudRepository {
   }
 
   async getAllCities(search) {
+    if (!search) {
+      return await City.findAll();
+    }
     const result = await City.findAll({
       where: {
         name: {

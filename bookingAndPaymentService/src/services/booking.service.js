@@ -430,7 +430,7 @@ class BookingService {
     const seatReleasePromises = [
       flightClient.incrementSeats(
         booking.flightSnapshot.outbound.flightId,
-        noOfSeats,
+        booking.noOfSeats,
       ),
     ];
 
@@ -438,7 +438,7 @@ class BookingService {
       seatReleasePromises.push(
         flightClient.incrementSeats(
           booking.flightSnapshot.return.flightId,
-          noOfSeats,
+          booking.noOfSeats,
         ),
       );
     }

@@ -66,6 +66,14 @@ const updateSeats = asyncHandler(async (req, res) => {
 });
 
 
+const getAllFlights = asyncHandler(async (req, res) => {
+  const data = await FlightService.fetchAll();
+  successResponse(res, {
+    data,
+    message: "Successfully fetched all flights.",
+  });
+});
+
 module.exports = {
   createFlight,
   fetchFlight,
@@ -73,4 +81,5 @@ module.exports = {
   updateFlight,
   deleteFlight,
   getFlights,
+  getAllFlights,
 };
