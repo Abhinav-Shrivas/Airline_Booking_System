@@ -1,4 +1,4 @@
-import { flightAPI, bookingAPI } from './axios';
+import { flightAPI, bookingAPI, authAPI } from './axios';
 
 // Cities
 export async function createCity(data) {
@@ -91,6 +91,22 @@ export async function adminCancelBooking(id) {
 }
 
 export async function adminRefundBooking(id) {
-  const response = await bookingAPI.post(`/api/v1/admin/bookings/${id}/refund`);
+  const response = await bookingAPI.patch(`/api/v1/admin/bookings/${id}/refund`);
+  return response.data.data;
+}
+
+// Users
+export async function getAllUsers() {
+  const response = await authAPI.get('/api/v1/admin/users');
+  return response.data.data;
+}
+
+export async function deleteUser(id) {
+  const response = await authAPI.delete(`/api/v1/users/${id}`);
+  return response.data.data;
+}
+
+export async function updateUserRole(email, roleName) {
+  const response = await authAPI.patch('/api/v1/admin/updateRole', { email, roleName });
   return response.data.data;
 }

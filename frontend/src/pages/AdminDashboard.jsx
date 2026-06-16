@@ -16,6 +16,7 @@ export default function AdminDashboard() {
   const [airports, setAirports] = useState([]);
   const [airplanes, setAirplanes] = useState([]);
   const [flights, setFlights] = useState([]);
+  const [users, setUsers] = useState([]);
 
   // Form states
   const [newCity, setNewCity] = useState({ name: '' });
@@ -42,6 +43,8 @@ export default function AdminDashboard() {
       formattedData.airplaneId = item.airplane_id;
       formattedData.departureAirportId = item.departure_airport_id;
       formattedData.arrivalAirportId = item.arrival_airport_id;
+    } else if (item.email) {
+      formattedData.roleName = item.roles?.[0]?.name || 'USER';
     }
     setEditFormData(formattedData);
   };
@@ -71,10 +74,12 @@ export default function AdminDashboard() {
           boardingGate: editFormData.boardingGate || undefined,
           totalSeatsLeft: editFormData.totalSeatsLeft ? Number(editFormData.totalSeatsLeft) : undefined
         });
+      } else if (type === 'user') {
+        await adminApi.updateUserRole(editFormData.email, editFormData.roleName);
       }
       showToast(`${type} updated successfully`, 'success');
       setEditingId(null);
-      loadData(type === 'city' ? 'cities' : type === 'airport' ? 'airports' : type === 'airplane' ? 'airplanes' : 'flights');
+      loadData(type === 'city' ? 'cities' : type === 'airport' ? 'airports' : type === 'airplane' ? 'airplanes' : type === 'flight' ? 'flights' : 'users');
     } catch (err) {
       showToast(extractApiError(err), 'error');
     }
@@ -99,6 +104,9 @@ export default function AdminDashboard() {
       } else if (tab === 'flights') {
         const data = await adminApi.getAllFlights();
         setFlights([...data].sort((a, b) => a.id - b.id));
+      } else if (tab === 'users') {
+        const data = await adminApi.getAllUsers();
+        setUsers([...data].sort((a, b) => a.id - b.id));
       }
     } catch (err) {
       showToast(extractApiError(err), 'error');
@@ -219,6 +227,17 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm('Delete user?')) return;
+    try {
+      await adminApi.deleteUser(id);
+      showToast('User deleted', 'success');
+      loadData('users');
+    } catch (err) {
+      showToast(extractApiError(err), 'error');
+    }
+  };
+
   const handleAdminBookingAction = async (action) => {
     if (!bookingActionId) return showToast('Please enter a Booking ID', 'error');
     if (!window.confirm(`Are you sure you want to perform an Admin ${action} on Booking #${bookingActionId}?`)) return;
@@ -249,7 +268,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="admin-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
-        {['cities', 'airports', 'airplanes', 'flights', 'bookings'].map(tab => (
+        {['cities', 'airports', 'airplanes', 'flights', 'users', 'bookings'].map(tab => (
           <button 
             key={tab} 
             className={`btn ${activeTab === tab ? 'btn-primary' : 'btn-outline'}`}
@@ -582,6 +601,52 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {activeTab === 'users' && (
+            <div>
+              <h2>Manage Users</h2>
+              <p className="muted" style={{ marginBottom: '1.5rem', fontSize: '0.9rem' }}>View users, update their roles, or delete accounts.</p>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--color-border)', textAlign: 'left' }}>
+                    <th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(u => (
+                    <tr key={u.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <td style={{ padding: '0.5rem 0' }}>{u.id}</td>
+                      <td>{u.name}</td>
+                      <td>{u.email}</td>
+                      <td>
+                        {editingId === u.id ? (
+                          <select value={editFormData.roleName} onChange={e => setEditFormData({ ...editFormData, roleName: e.target.value })} style={{ padding: '0.2rem' }}>
+                            <option value="USER">USER</option>
+                            <option value="AIRLINE_STAFF">AIRLINE_STAFF</option>
+                            <option value="ADMIN">ADMIN</option>
+                          </select>
+                        ) : u.roles?.map(r => r.name).join(', ')}
+                      </td>
+                      <td>
+                        {editingId === u.id ? (
+                          <>
+                            <button className="btn btn-sm btn-primary" onClick={() => handleUpdate('user', u.id)}>Save</button>
+                            <button className="btn btn-sm btn-outline" onClick={cancelEdit} style={{ marginLeft: '0.5rem' }}>Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="btn btn-sm btn-outline" onClick={() => startEdit(u)}>Edit Role</button>
+                            <button className="btn btn-sm btn-outline" onClick={() => handleDeleteUser(u.id)} style={{ marginLeft: '0.5rem' }}>Delete</button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
         </div>
       )}
     </div>

@@ -67,4 +67,19 @@ router.post("/assignRole",authMiddleware, authorizeMiddleware("ADMIN"), adminCon
  */
 router.patch("/updateRole",authMiddleware, authorizeMiddleware("ADMIN"), adminController.updateRole);
 
+/**
+ * @swagger
+ * /api/v1/admin/users:
+ *   get:
+ *     summary: Get all users
+ *     tags: [Admin]
+ *     description: "Access: ADMIN only"
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all users
+ */
+router.get("/users", authMiddleware, authorizeMiddleware("ADMIN"), adminController.getAllUsers);
+
 module.exports = router;

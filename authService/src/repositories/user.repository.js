@@ -50,6 +50,18 @@ class UserRepository {
     return user;
   }
 
+  async fetchAll() {
+    const response = await User.findAll({
+      attributes: { exclude: ['password'] },
+      include: {
+        model: Role,
+        as: "roles",
+        attributes: ["name"],
+      },
+    });
+    return response;
+  }
+
   async update(id, data) {
     await User.update(data, {
       where: {

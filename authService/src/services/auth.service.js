@@ -228,7 +228,6 @@ class AuthService {
   //refresh
   async refresh(sessionToken) {
     const tokenHash = hashToken(sessionToken);
-
     const session = await sessionRepository.fetchByToken(tokenHash);
 
     if (!session) {
@@ -246,14 +245,12 @@ class AuthService {
     }
     const user = await userRepository.fetch(session.userId);
     const roles = user.roles.map((r) => r.name);
-    const newSessionToken = generateSessionToken();
-    const newHash = hashToken(newSessionToken);
+    // Update rolling expiry without rotating the session token to prevent race conditions
     const newExpiresAt = new Date(
       Date.now() + SESSION_ROLLING_DAYS * MS_PER_DAY,
     );
 
     await sessionRepository.update(session.id, {
-      tokenHash: newHash,
       expiresAt: newExpiresAt,
     });
 
@@ -265,7 +262,7 @@ class AuthService {
     });
     return {
       accessToken,
-      newSessionToken,
+      newSessionToken: sessionToken,
     };
   }
 

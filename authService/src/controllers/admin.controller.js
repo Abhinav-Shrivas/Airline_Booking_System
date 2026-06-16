@@ -17,8 +17,16 @@ const updateRole =  asyncHandler(async (req, res) => {
   });
 });
 
+const getAllUsers = asyncHandler(async (req, res) => {
+  const data = await userService.fetchAll();
+  successResponse(res, {
+    message: "Successfully fetched all users.",
+    data,
+  });
+});
 
 module.exports = {
     assignRole,
-    updateRole
+    updateRole,
+    getAllUsers
 }

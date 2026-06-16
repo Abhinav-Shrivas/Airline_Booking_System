@@ -34,6 +34,12 @@ class UserService {
     return response;
   }
 
+  // fetch all users
+  async fetchAll() {
+    const response = await userRepository.fetchAll();
+    return response;
+  }
+
   // update user using id
   async update(id, data) {
     const response = await userRepository.update(id, data);
