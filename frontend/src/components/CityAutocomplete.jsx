@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { searchCities } from '../api/flights';
 import { extractApiError } from '../utils/formatters';
 
+let globalCitiesCache = null;
+let fetchPromise = null;
+
 export default function CityAutocomplete({ label, value, onChange, placeholder }) {
   const [query, setQuery] = useState(value?.name || '');
   const [suggestions, setSuggestions] = useState([]);
@@ -29,15 +32,44 @@ export default function CityAutocomplete({ label, value, onChange, placeholder }
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const cities = await searchCities(query);
-        setSuggestions(cities);
+        // Fetch all cities exactly once and cache them
+        if (!globalCitiesCache) {
+          if (!fetchPromise) {
+            fetchPromise = searchCities('');
+          }
+          globalCitiesCache = await fetchPromise;
+        }
+
+        const allCities = globalCitiesCache || [];
+        
+        // Filter locally instead of hitting the API
+        if (!query) {
+          setSuggestions(allCities);
+        } else {
+          const lowerQuery = query.toLowerCase();
+          const filtered = allCities.filter(city => city.name.toLowerCase().includes(lowerQuery));
+          
+          // Sort: cities starting with the query come first, then alphabetical
+          filtered.sort((a, b) => {
+            const aStarts = a.name.toLowerCase().startsWith(lowerQuery);
+            const bStarts = b.name.toLowerCase().startsWith(lowerQuery);
+            
+            if (aStarts && !bStarts) return -1;
+            if (!aStarts && bStarts) return 1;
+            
+            // Alphabetical tie-breaker
+            return a.name.localeCompare(b.name);
+          });
+          
+          setSuggestions(filtered);
+        }
       } catch (err) {
         setSuggestions([]);
         console.error(extractApiError(err));
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, 150); // Reduced debounce time since it's local now
 
     return () => clearTimeout(timer);
   }, [query, open]);

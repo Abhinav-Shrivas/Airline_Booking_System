@@ -91,7 +91,7 @@ export async function adminCancelBooking(id) {
 }
 
 export async function adminRefundBooking(id) {
-  const response = await bookingAPI.patch(`/api/v1/admin/bookings/${id}/refund`);
+  const response = await bookingAPI.post(`/api/v1/admin/bookings/${id}/refund`);
   return response.data.data;
 }
 

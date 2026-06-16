@@ -167,8 +167,8 @@ router.get(
  * /api/v1/flights/{id}:
  *   get:
  *     summary: Get flight by ID
- *     tags: [Admin-Flights]
- *     description: "Access: AIRLINE_STAFF, ADMIN"
+ *     tags: [Flights]
+ *     description: "Access: Any authenticated user"
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -185,7 +185,6 @@ router.get(
 router.get(
   "/:id",
   authMiddleware,
-  authorizeMiddleware("AIRLINE_STAFF", "ADMIN"),
   flightController.fetchFlight,
 );
 /**

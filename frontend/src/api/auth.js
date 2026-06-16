@@ -24,6 +24,11 @@ export async function logout() {
   return data;
 }
 
+export async function logoutFromOtherDevices() {
+  const { data } = await authAPI.post('/api/v1/auth/logoutFromOtherDevices');
+  return data;
+}
+
 export async function fetchUser(userId, accessToken) {
   const { data } = await authAPI.get(`/api/v1/users/${userId}`, {
     headers: { Authorization: `Bearer ${accessToken}` },

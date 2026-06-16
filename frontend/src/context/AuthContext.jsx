@@ -115,6 +115,10 @@ export function AuthProvider({ children }) {
     }
   }, [clearAuth]);
 
+  const logoutFromOtherDevices = useCallback(async () => {
+    await authApi.logoutFromOtherDevices();
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -122,11 +126,12 @@ export function AuthProvider({ children }) {
       login,
       register,
       logout,
+      logoutFromOtherDevices,
       applyAuthResponse,
       isAuthenticated: Boolean(accessToken && user),
       isLoading,
     }),
-    [user, accessToken, login, register, logout, applyAuthResponse, isLoading]
+    [user, accessToken, login, register, logout, logoutFromOtherDevices, applyAuthResponse, isLoading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

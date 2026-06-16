@@ -83,7 +83,10 @@ router.patch("/:id",authMiddleware, authorizeMiddleware("ADMIN"), cityController
  * /api/v1/cities/{id}:
  *   get:
  *     summary: Get city by ID
- *     tags: [Cities]
+ *     tags: [Admin-Cities]
+ *     description: "Access: ADMIN only"
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -95,16 +98,13 @@ router.patch("/:id",authMiddleware, authorizeMiddleware("ADMIN"), cityController
  *       200:
  *         description: City details
  */
-router.get("/:id", cityController.fetchCity);
+router.get("/:id",authMiddleware, authorizeMiddleware("ADMIN"), cityController.fetchCity);
 /**
  * @swagger
  * /api/v1/cities:
  *   get:
  *     summary: Get all cities
- *     tags: [Admin-Cities]
- *     description: "Access: AIRLINE_STAFF, ADMIN"
- *     security:
- *       - bearerAuth: []
+ *     tags: [Cities]
  *     parameters:
  *       - in: query
  *         name: search
@@ -115,6 +115,6 @@ router.get("/:id", cityController.fetchCity);
  *       200:
  *         description: List of cities
  */
-router.get("/",authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN"), cityController.getAllCities);
+router.get("/", cityController.getAllCities);
 
 module.exports = router;
