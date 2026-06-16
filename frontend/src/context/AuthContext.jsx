@@ -21,19 +21,29 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const setAccessToken = useCallback((token) => {
-    setAccessTokenState(token);
-  }, []);
-
   const clearAuth = useCallback(() => {
     setAccessTokenState(null);
     setUser(null);
+    configureAuth({
+      getToken: () => null,
+      setToken: (token) => setAccessTokenState(token),
+      logout: () => {}, // We'll update this in the effect or just pass a simple logout
+    });
   }, []);
+
+  const setAccessToken = useCallback((token) => {
+    setAccessTokenState(token);
+    configureAuth({
+      getToken: () => token,
+      setToken: (t) => setAccessTokenState(t),
+      logout: clearAuth,
+    });
+  }, [clearAuth]);
 
   const applyAuthResponse = useCallback(async (responseData, fallbackName) => {
     const token = responseData.accessToken;
     const email = responseData.email || responseData.user?.email;
-    setAccessTokenState(token);
+    setAccessToken(token);
 
     let resolvedUser = buildUserFromToken(token, email, fallbackName || responseData.user?.name);
 
@@ -53,15 +63,7 @@ export function AuthProvider({ children }) {
 
     setUser(resolvedUser);
     return resolvedUser;
-  }, []);
-
-  useEffect(() => {
-    configureAuth({
-      getToken: () => accessToken,
-      setToken: setAccessToken,
-      logout: clearAuth,
-    });
-  }, [accessToken, setAccessToken, clearAuth]);
+  }, [setAccessToken]);
 
   useEffect(() => {
     let cancelled = false;

@@ -33,8 +33,25 @@ class BookingService {
     // 5. Create booking + passengers
     try {
       const totalCost = flight.price * noOfSeats;
+      const outboundflightSnapshot = {
+        flightId,
+        flightNo: flight.flightNo,
+        departureTime: flight.departureTime,
+        arrivalTime: flight.arrivalTime,
+        price: flight.price,
+      };
       const booking = await bookingRepository.createBookingWithPassengers(
-        { userId, flightId, noOfSeats, totalCost, status: "INITIATED" },
+        {
+          userId,
+          outboundFlightId: flightId,
+          flightSnapshot: {
+            outbound: outboundflightSnapshot,
+            return: null,
+          },
+          noOfSeats,
+          totalCost,
+          status: "INITIATED",
+        },
         passengers,
       );
       return booking;
@@ -46,7 +63,7 @@ class BookingService {
   }
 
   //create booking for round trip
-  async createBooking(
+  async createBookingRound(
     userId,
     { returnFlightId, outboundFlightId, noOfSeats, passengers },
   ) {
@@ -57,13 +74,22 @@ class BookingService {
         400,
       );
     }
-
     // 2. Fetch flight details from FlightSearch Service
     const [outboundFlight, returnFlight] = await Promise.all([
       flightClient.getFlightById(outboundFlightId),
       flightClient.getFlightById(returnFlightId),
     ]);
 
+    //checking round rule
+    if (
+      outboundFlight.arrival_airport_id !== returnFlight.departure_airport_id ||
+      returnFlight.arrival_airport_id !== outboundFlight.departure_airport_id
+    ) {
+      throw new AppError(
+        "Selected flights do not form a valid round trip.",
+        400,
+      );
+    }
     // 3. Check seat availability
     if (outboundFlight.totalSeatsLeft < noOfSeats) {
       throw new AppError(
@@ -101,20 +127,46 @@ class BookingService {
       throw error;
     }
 
-    // 5. Create booking + passengers
+    // 6. Create booking + passengers
     try {
+      const outboundSnapshot = {
+        flightId: outboundFlightId,
+        flightNo: outboundFlight.flightNo,
+        departureTime: outboundFlight.departureTime,
+        arrivalTime: outboundFlight.arrivalTime,
+        price: outboundFlight.price,
+      };
+      const returnSnapshot = {
+        flightId: returnFlightId,
+        flightNo: returnFlight.flightNo,
+        departureTime: returnFlight.departureTime,
+        arrivalTime: returnFlight.arrivalTime,
+        price: returnFlight.price,
+      };
       const outboundFlightCost = outboundFlight.price;
       const returnFlightCost = returnFlight.price;
-      const totalCost = flight.price * noOfSeats;
+      const totalCost = (outboundFlightCost + returnFlightCost) * noOfSeats;
       const booking = await bookingRepository.createBookingWithPassengers(
-        { userId, flightId, noOfSeats, totalCost, status: "INITIATED" },
+        {
+          userId,
+          outboundFlightId,
+          returnFlightId,
+          tripType: "ROUND_TRIP",
+          noOfSeats,
+          flightSnapshot: {
+            outbound: outboundSnapshot,
+            return: returnSnapshot,
+          },
+          totalCost,
+          status: "INITIATED",
+        },
         passengers,
       );
       return booking;
     } catch (error) {
       // If booking creation fails, release the reserved seats
       await Promise.all([
-        flightClient.incrementSeats(outboundFlight, noOfSeats),
+        flightClient.incrementSeats(outboundFlightId, noOfSeats),
         flightClient.incrementSeats(returnFlightId, noOfSeats),
       ]);
       throw error;
@@ -138,11 +190,10 @@ class BookingService {
         400,
       );
     }
-
     // Enforce 24-hour rule unless skipped (admin override)
     if (!skipTimeCheck) {
-      const flight = await flightClient.getFlightById(booking.flightId);
-      const timeUntilDeparture = new Date(flight.departureTime) - new Date();
+      const timeUntilDeparture =
+        new Date(booking.flightSnapshot.outbound.departureTime) - new Date();
       const oneDayMs = 24 * 60 * 60 * 1000;
       if (timeUntilDeparture < oneDayMs) {
         throw new AppError("Cannot cancel within 24 hours of departure.", 400);
@@ -164,11 +215,28 @@ class BookingService {
     });
 
     // 3. Release seats back (best-effort)
-    await flightClient.incrementSeats(booking.flightId, booking.noOfSeats);
+    const seatReleasePromises = [
+      flightClient.incrementSeats(
+        booking.flightSnapshot.outbound.flightId,
+        booking.noOfSeats,
+      ),
+    ];
+
+    if (booking.flightSnapshot.return) {
+      seatReleasePromises.push(
+        flightClient.incrementSeats(
+          booking.flightSnapshot.return.flightId,
+          booking.noOfSeats,
+        ),
+      );
+    }
+
+    await Promise.all(seatReleasePromises);
+
+    //publish event
     eventPublisher.publish("booking.refunded", {
       bookingId,
       userId: booking.userId,
-      flightId: booking.flightId,
       noOfSeats: booking.noOfSeats,
       refundAmount: booking.totalCost,
     });
@@ -184,6 +252,14 @@ class BookingService {
     }
     if (booking.userId !== userId) {
       throw new AppError("You are not authorized to view this booking", 403);
+    }
+    return booking;
+  }
+  //get booking by bookingId internal route
+  async getBookingByInternal(bookingId) {
+    const booking = await bookingRepository.findByIdWithDetails(bookingId);
+    if (!booking) {
+      throw new AppError("Booking not found", 404);
     }
     return booking;
   }
@@ -214,11 +290,27 @@ class BookingService {
     await booking.save();
 
     // Release seats back to the flight
-    await flightClient.incrementSeats(booking.flightId, booking.noOfSeats);
+    const seatReleasePromises = [
+      flightClient.incrementSeats(
+        booking.flightSnapshot.outbound.flightId,
+        booking.noOfSeats,
+      ),
+    ];
+
+    if (booking.flightSnapshot.return) {
+      seatReleasePromises.push(
+        flightClient.incrementSeats(
+          booking.flightSnapshot.return.flightId,
+          booking.noOfSeats,
+        ),
+      );
+    }
+
+    await Promise.all(seatReleasePromises);
+
     eventPublisher.publish("booking.cancelled", {
       bookingId,
       userId: booking.userId,
-      flightId: booking.flightId,
       noOfSeats: booking.noOfSeats,
     });
 
@@ -236,10 +328,8 @@ class BookingService {
     eventPublisher.publish("booking.confirmed", {
       bookingId,
       userId: booking.userId,
-      flightId: booking.flightId,
       noOfSeats: booking.noOfSeats,
       totalCost: booking.totalCost,
-      bookedAt: booking.bookedAt,
     });
     return booking;
   }
@@ -253,11 +343,27 @@ class BookingService {
     await booking.save();
 
     // Release seats
-    await flightClient.incrementSeats(booking.flightId, booking.noOfSeats);
+    const seatReleasePromises = [
+      flightClient.incrementSeats(
+        booking.flightSnapshot.outbound.flightId,
+        booking.noOfSeats,
+      ),
+    ];
+
+    if (booking.flightSnapshot.return) {
+      seatReleasePromises.push(
+        flightClient.incrementSeats(
+          booking.flightSnapshot.return.flightId,
+          booking.noOfSeats,
+        ),
+      );
+    }
+
+    await Promise.all(seatReleasePromises);
+
     eventPublisher.publish("booking.cancelled", {
       bookingId,
       userId: booking.userId,
-      flightId: booking.flightId,
       noOfSeats: booking.noOfSeats,
     });
     return booking;
@@ -271,22 +377,29 @@ class BookingService {
     const upcomingBookings = [];
     for (const booking of confirmedBookings) {
       try {
-        const flight = await flightClient.getFlightById(booking.flightId);
-        const timeUntilDeparture = new Date(flight.departureTime) - new Date();
-        const windowMs = hoursUntilDeparture * 60 * 60 * 1000;
+        const flightDetails = {
+          outbound: booking.flightSnapshot.outbound,
+        };
 
-        if (timeUntilDeparture > 0 && timeUntilDeparture <= windowMs) {
-          upcomingBookings.push({
-            bookingId: booking.id,
-            userId: booking.userId,
-            flightId: booking.flightId,
-            noOfSeats: booking.noOfSeats,
-            flight: {
-              flightNo: flight.flightNo,
-              departureTime: flight.departureTime,
-              arrivalTime: flight.arrivalTime,
-            },
-          });
+        if (booking.tripType === "ROUND") {
+          flightDetails.return = booking.flightSnapshot.return;
+        }
+
+        for (const [journeyType, flight] of Object.entries(flightDetails)) {
+          const timeUntilDeparture =
+            new Date(flight.departureTime) - new Date();
+
+          const windowMs = hoursUntilDeparture * 60 * 60 * 1000;
+
+          if (timeUntilDeparture > 0 && timeUntilDeparture <= windowMs) {
+            upcomingBookings.push({
+              bookingId: booking.id,
+              userId: booking.userId,
+              noOfSeats: booking.noOfSeats,
+              journeyType: journeyType.toUpperCase(),
+              flight,
+            });
+          }
         }
       } catch (error) {
         logger.error(
@@ -314,11 +427,27 @@ class BookingService {
     await booking.save();
 
     // Release seats back
-    await flightClient.incrementSeats(booking.flightId, booking.noOfSeats);
+    const seatReleasePromises = [
+      flightClient.incrementSeats(
+        booking.flightSnapshot.outbound.flightId,
+        noOfSeats,
+      ),
+    ];
+
+    if (booking.flightSnapshot.return) {
+      seatReleasePromises.push(
+        flightClient.incrementSeats(
+          booking.flightSnapshot.return.flightId,
+          noOfSeats,
+        ),
+      );
+    }
+
+    await Promise.all(seatReleasePromises);
+
     eventPublisher.publish("booking.cancelled_no_refund", {
       bookingId,
       userId: booking.userId,
-      flightId: booking.flightId,
       noOfSeats: booking.noOfSeats,
     });
 

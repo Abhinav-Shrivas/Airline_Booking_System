@@ -1,26 +1,89 @@
 function build(eventType, data) {
   const templates = {
-    "booking.confirmed": () => ({
-      subject: `Booking #${data.bookingId} Confirmed ✈️`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px;">
-          <h2 style="color: #22c55e;">Your booking is confirmed!</h2>
-          <p>Hi ${data.user.name},</p>
-          <table style="border-collapse: collapse; width: 100%;">
-            <tr><td><strong>Booking ID</strong></td><td>#${data.bookingId}</td></tr>
-            <tr><td><strong>Flight</strong></td><td>${data.flight?.flightNo || data.flightId}</td></tr>
-            <tr><td><strong>Departure</strong></td><td>${new Date(data.flight?.departureTime).toLocaleString()}</td></tr>
-            <tr><td><strong>Passengers</strong></td><td>${data.noOfSeats}</td></tr>
-            <tr><td><strong>Total Paid</strong></td><td>₹${data.totalCost}</td></tr>
+    "booking.confirmed": () => {
+      const outbound = data.booking.flightSnapshot.outbound;
+      const returnFlight = data.booking.flightSnapshot.return;
+
+      return {
+        subject: `Booking #${data.bookingId} Confirmed ✈️`,
+        html: `
+      <div style="font-family: Arial, sans-serif; max-width: 650px;">
+        <h2 style="color: #22c55e;">Your booking is confirmed!</h2>
+
+        <p>Hi ${data.user.name},</p>
+
+        <p>
+          Your ${
+            returnFlight ? "round-trip" : "one-way"
+          } booking has been successfully confirmed.
+        </p>
+
+        <table style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
+          <tr>
+            <td><strong>Booking ID</strong></td>
+            <td>#${data.bookingId}</td>
+          </tr>
+          <tr>
+            <td><strong>Passengers</strong></td>
+            <td>${data.noOfSeats}</td>
+          </tr>
+          <tr>
+            <td><strong>Total Paid</strong></td>
+            <td>₹${data.totalCost}</td>
+          </tr>
+        </table>
+
+        <h3 style="color: #2563eb;">${returnFlight ? "Outbound Flight" : "Flight"}</h3>
+
+        <table style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
+          <tr>
+            <td><strong>Flight No</strong></td>
+            <td>${outbound.flightNo}</td>
+          </tr>
+          <tr>
+            <td><strong>Departure</strong></td>
+            <td>${new Date(outbound.departureTime).toLocaleString()}</td>
+          </tr>
+          <tr>
+            <td><strong>Arrival</strong></td>
+            <td>${new Date(outbound.arrivalTime).toLocaleString()}</td>
+          </tr>
+        </table>
+
+        ${
+          returnFlight
+            ? `
+          <h3 style="color: #2563eb;">Return Flight</h3>
+
+          <table style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
+            <tr>
+              <td><strong>Flight No</strong></td>
+              <td>${returnFlight.flightNo}</td>
+            </tr>
+            <tr>
+              <td><strong>Departure</strong></td>
+              <td>${new Date(returnFlight.departureTime).toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td><strong>Arrival</strong></td>
+              <td>${new Date(returnFlight.arrivalTime).toLocaleString()}</td>
+            </tr>
           </table>
-          <p style="color: #666; margin-top: 20px;">Thank you for booking with SkyBooker!</p>
-        </div>
-      `,
-    }),
+          `
+            : ""
+        }
+
+        <p style="color: #666; margin-top: 20px;">
+          Thank you for booking with SkyBooker!
+        </p>
+      </div>
+    `,
+      };
+    },
 
     "booking.cancelled": () => ({
       subject: `Booking #${data.bookingId} Cancelled`,
-      html: `<div style="font-family: Arial;"><h2 style="color: #ef4444;">Booking Cancelled</h2><p>Hi ${data.user.name}, your booking #${data.bookingId} has been cancelled. ${data.noOfSeats} seat(s) have been released.</p></div>`,
+      html: `<div style="font-family: Arial;"><h2 style="color: #ef4444;">Booking Cancelled</h2><p>Hi ${data.user.name}, your booking #${data.bookingId} has been cancelled.</p></div>`,
     }),
 
     "register.successful": () => ({
@@ -87,14 +150,117 @@ function build(eventType, data) {
     }),
 
     "departure.reminder": () => ({
-      subject: `Reminder: Your flight departs tomorrow ✈️`,
-      html: `<div style="font-family: Arial;"><h2 style="color: #8b5cf6;">Flight Reminder</h2><p>Hi ${data.user.name}, this is a reminder that your flight ${data.flight?.flightNo} departs on ${new Date(data.flight?.departureTime).toLocaleString()}.</p><p>Booking #${data.bookingId} — ${data.noOfSeats} passenger(s).</p></div>`,
+      subject: `Reminder: Your ${data.journeyType.toLowerCase()} flight departs soon ✈️`,
+      html: `
+    <div style="font-family: Arial, sans-serif; max-width: 600px;">
+      <h2 style="color: #8b5cf6;">Flight Reminder</h2>
+
+      <p>Hi ${data.user.name},</p>
+
+      <p>
+        This is a reminder that your
+        <strong>${data.journeyType.toLowerCase()}</strong>
+        flight <strong>${data.flight.flightNo}</strong>
+        departs soon.
+      </p>
+
+      <table style="border-collapse: collapse; width: 100%;">
+        <tr>
+          <td><strong>Booking ID</strong></td>
+          <td>#${data.bookingId}</td>
+        </tr>
+        <tr>
+          <td><strong>Journey</strong></td>
+          <td>${data.journeyType}</td>
+        </tr>
+        <tr>
+          <td><strong>Flight No</strong></td>
+          <td>${data.flight.flightNo}</td>
+        </tr>
+        <tr>
+          <td><strong>Departure</strong></td>
+          <td>${new Date(data.flight.departureTime).toLocaleString()}</td>
+        </tr>
+        <tr>
+          <td><strong>Passengers</strong></td>
+          <td>${data.noOfSeats}</td>
+        </tr>
+      </table>
+
+      <p style="margin-top: 20px;">
+        We recommend arriving at the airport at least 2 hours before departure.
+      </p>
+    </div>
+  `,
     }),
 
-    "booking.cancelled_no_refund": () => ({
-      subject: `Booking #${data.bookingId} Cancelled — No Refund`,
-      html: `<div style="font-family: Arial;"><h2 style="color: #ef4444;">Booking Cancelled</h2><p>Hi ${data.user.name}, your booking #${data.bookingId} (${data.noOfSeats} seat(s) on flight ${data.flight?.flightNo || data.flightId}) has been cancelled by the airline. No refund will be issued for this cancellation.</p><p style="color: #666;">If you believe this is an error, please contact our support team.</p></div>`,
-    }),
+    "booking.cancelled_no_refund": () => {
+      const outbound = data.booking.flightSnapshot.outbound;
+      const returnFlight = data.booking.flightSnapshot.return;
+
+      return {
+        subject: `Booking #${data.bookingId} Cancelled — No Refund`,
+        html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px;">
+        <h2 style="color: #ef4444;">Booking Cancelled</h2>
+
+        <p>Hi ${data.user.name},</p>
+
+        <p>
+          Your booking <strong>#${data.bookingId}</strong>
+          has been cancelled by the airline.
+        </p>
+
+        <table style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
+          <tr>
+            <td><strong>Passengers</strong></td>
+            <td>${data.noOfSeats}</td>
+          </tr>
+          <tr>
+            <td><strong>Refund Status</strong></td>
+            <td>No refund applicable</td>
+          </tr>
+        </table>
+
+        <h3>Outbound Flight</h3>
+
+        <table style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
+          <tr>
+            <td><strong>Flight No</strong></td>
+            <td>${outbound.flightNo}</td>
+          </tr>
+          <tr>
+            <td><strong>Departure</strong></td>
+            <td>${new Date(outbound.departureTime).toLocaleString()}</td>
+          </tr>
+        </table>
+
+        ${
+          returnFlight
+            ? `
+          <h3>Return Flight</h3>
+
+          <table style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
+            <tr>
+              <td><strong>Flight No</strong></td>
+              <td>${returnFlight.flightNo}</td>
+            </tr>
+            <tr>
+              <td><strong>Departure</strong></td>
+              <td>${new Date(returnFlight.departureTime).toLocaleString()}</td>
+            </tr>
+          </table>
+        `
+            : ""
+        }
+
+        <p style="color: #666;">
+          If you believe this cancellation is incorrect, please contact support.
+        </p>
+      </div>
+    `,
+      };
+    },
   };
 
   const templateFn = templates[eventType];

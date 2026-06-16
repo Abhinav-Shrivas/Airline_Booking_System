@@ -22,5 +22,25 @@ const { internalAuthMiddleware } = require("shared");
  *         description: List of upcoming bookings
  */
 router.get("/bookings/upcoming", internalAuthMiddleware, internalController.getUpcomingBookings);
+/**
+ * @swagger
+ * /api/v1/internal/bookings/{id}:
+ *   get:
+ *     summary: Get a specific booking
+ *     tags: [Internal]
+ *     security:
+ *       - apiKey: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Booking ID
+ *     responses:
+ *       200:
+ *         description: Booking details
+ */
+router.get("/bookings/:id", internalAuthMiddleware, internalController.getBooking);
 
 module.exports = router;

@@ -62,7 +62,13 @@ const schemas = require("../../utils/flight.validation");
  *       201:
  *         description: Flight created
  */
-router.post("/",authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN"), validate(schemas.createFlight), flightController.createFlight);
+router.post(
+  "/",
+  authMiddleware,
+  authorizeMiddleware("AIRLINE_STAFF", "ADMIN"),
+  validate(schemas.createFlight),
+  flightController.createFlight,
+);
 /**
  * @swagger
  * /api/v1/flights/{id}:
@@ -83,7 +89,12 @@ router.post("/",authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN"), v
  *       200:
  *         description: Flight deleted
  */
-router.delete("/:id",authMiddleware, authorizeMiddleware("ADMIN"), flightController.deleteFlight);
+router.delete(
+  "/:id",
+  authMiddleware,
+  authorizeMiddleware("ADMIN"),
+  flightController.deleteFlight,
+);
 /**
  * @swagger
  * /api/v1/flights/{id}:
@@ -110,7 +121,12 @@ router.delete("/:id",authMiddleware, authorizeMiddleware("ADMIN"), flightControl
  *       200:
  *         description: Flight updated
  */
-router.patch("/:id",authMiddleware, authorizeMiddleware("AIRLINE_STAFF", "ADMIN"), flightController.updateFlight);
+router.patch(
+  "/:id",
+  authMiddleware,
+  authorizeMiddleware("AIRLINE_STAFF", "ADMIN"),
+  flightController.updateFlight,
+);
 /**
  * @swagger
  * /api/v1/flights/{id}:
@@ -190,15 +206,20 @@ router.get("/:id", flightController.fetchFlight);
  *       200:
  *         description: List of flights
  */
-router.get("/", validate(schemas.searchFlights, "query"), flightController.getFlights);
+router.get(
+  "/",
+  validate(schemas.searchFlights, "query"),
+  flightController.getFlights,
+);
 /**
  * @swagger
  * /api/v1/flights/{id}/seats:
  *   patch:
- *     summary: Update flight seats (Internal)
- *     tags: [Internal]
+ *     summary: Update flight seats (Admin or staff)
+ *     tags: [Flights]
+ *     description: "Access: AIRLINE_STAFF, ADMIN"
  *     security:
- *       - apiKey: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -211,16 +232,30 @@ router.get("/", validate(schemas.searchFlights, "query"), flightController.getFl
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               seats:
- *                 type: integer
- *               dec:
- *                 type: boolean
+ *             oneOf:
+ *               - type: object
+ *                 required:
+ *                   - seatsToIncrement
+ *                 properties:
+ *                   seatsToIncrement:
+ *                     type: integer
+ *                     minimum: 1
+ *               - type: object
+ *                 required:
+ *                   - seatsToDecrement
+ *                 properties:
+ *                   seatsToDecrement:
+ *                     type: integer
+ *                     minimum: 1
  *     responses:
  *       200:
  *         description: Seats updated
  */
-router.patch("/:id/seats", flightController.updateSeats);
+router.patch(
+  "/:id/seats",
+  authMiddleware,
+  authorizeMiddleware("AIRLINE_STAFF", "ADMIN"),
+  flightController.updateSeats,
+);
 
 module.exports = router;

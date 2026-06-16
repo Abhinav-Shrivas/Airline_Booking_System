@@ -9,22 +9,42 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      this.hasMany(models.Passenger,{
-        foreignKey : "bookingId",
-        as : "passengers",
-        onDelete : "CASCADE"
+      this.hasMany(models.Passenger, {
+        foreignKey: "bookingId",
+        as: "passengers",
+        onDelete: "CASCADE",
       });
-      this.hasOne(models.Payment,{
-        foreignKey : "bookingId",
-        as : "payment",
-        onDelete : "CASCADE"
-      })
+      this.hasOne(models.Payment, {
+        foreignKey: "bookingId",
+        as: "payment",
+        onDelete: "CASCADE",
+      });
     }
   }
   Booking.init(
     {
       userId: { type: DataTypes.INTEGER, allowNull: false },
-      flightId: { type: DataTypes.INTEGER, allowNull: false },
+      
+      outboundFlightId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+
+      returnFlightId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+
+      tripType: {
+        type: DataTypes.ENUM("ONE_WAY", "ROUND_TRIP"),
+        allowNull: false,
+        defaultValue: "ONE_WAY",
+      },
+
+      flightSnapshot: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+      },
       noOfSeats: {
         type: DataTypes.INTEGER,
         allowNull: false,

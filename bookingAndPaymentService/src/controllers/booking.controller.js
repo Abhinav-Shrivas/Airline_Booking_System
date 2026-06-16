@@ -14,7 +14,7 @@ const createBooking = asyncHandler(async (req, res) => {
 
 const createBookingRound = asyncHandler(async (req, res) => {
   const userId = req.jwtPayload.userId; 
-  const data = await BookingService.createBooking(userId, req.body);
+  const data = await BookingService.createBookingRound(userId, req.body);
   successResponse(res, {
     data,
     message:
@@ -86,4 +86,5 @@ module.exports = {
   getBooking,
   getUserBookings,
   cancelBooking,
+  createBookingRound
 };

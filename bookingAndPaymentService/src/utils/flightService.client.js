@@ -1,10 +1,11 @@
 const axios = require("axios");
-const { FLIGHT_SERVICE_URL } = require("../config/serverConfig");
+const { FLIGHT_SERVICE_URL, INTERNAL_API_KEY } = require("../config/serverConfig");
 const { AppError } = require("shared");
 const { logger } = require("shared");
 
 const flightServiceAPI = axios.create({
-  baseURL: `${FLIGHT_SERVICE_URL}/api/v1/flights`,
+  baseURL: `${FLIGHT_SERVICE_URL}/api/v1/internal/flights`,
+  headers: { "x-internal-api-key": INTERNAL_API_KEY },
   timeout: 5000,
 });
 

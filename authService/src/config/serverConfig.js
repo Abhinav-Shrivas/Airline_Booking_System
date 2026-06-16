@@ -19,7 +19,7 @@ const SESSION_COOKIE_MAX_AGE_MS = SESSION_ROLLING_DAYS * 24 * 60 * 60 * 1000;
 function getSessionCookieOptions(overrides = {}) {
   return {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     maxAge: SESSION_COOKIE_MAX_AGE_MS,
     ...overrides,

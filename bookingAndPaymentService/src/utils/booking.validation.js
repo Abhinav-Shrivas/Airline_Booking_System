@@ -43,4 +43,4 @@ const createBookingRound = Joi.object({
     .required(),
 });
 
-module.exports = { createBooking };
+module.exports = { createBooking, createBookingRound };

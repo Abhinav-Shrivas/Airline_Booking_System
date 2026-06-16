@@ -7,4 +7,11 @@ const getUpcomingBookings = asyncHandler(async (req, res) => {
   successResponse(res, { data, message: "Upcoming bookings fetched." });
 });
 
-module.exports = { getUpcomingBookings };
+const getBooking = asyncHandler(async (req, res) => {
+  const data = await BookingService.getBookingByInternal(
+    parseInt(req.params.id)
+  );
+  successResponse(res, { data, message: "Booking fetched successfully." });
+});
+
+module.exports = { getUpcomingBookings, getBooking };

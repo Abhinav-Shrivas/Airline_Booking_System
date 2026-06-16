@@ -17,11 +17,12 @@ class NotificationRepository extends CrudRepository {
     });
   }
 
-  async findExistingReminder(userId, bookingId) {
+  async findExistingReminder(userId, bookingId, journeyType) {
     return await Notification.findOne({
       where: {
         userId,
         bookingId,
+        journeyType,
         type: "DEPARTURE_REMINDER",
         status: "SENT",
       },

@@ -20,4 +20,14 @@ const getUpcomingBookings = async (hoursUntilDeparture = 24) => {
   }
 };
 
-module.exports = { getUpcomingBookings };
+const getBookingById = async (id) => {
+  try {
+    const response = await bookingAPI.get(`/bookings/${id}`);
+    return response.data.data;
+  } catch (error) {
+    logger.error(`Failed to fetch booking with given id: ${error.message}`);
+    return [];  // Don't crash the cron — return empty
+  }
+};
+
+module.exports = { getUpcomingBookings, getBookingById };

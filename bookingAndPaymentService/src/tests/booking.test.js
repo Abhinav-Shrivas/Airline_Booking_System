@@ -4,7 +4,7 @@ const paymentService = require("../services/payment.service.js");
 const bookingService = require("../services/booking.service.js");
 const eventPublisher = require("../utils/eventPublisher");
 
-describe("testing create booking function of booking service", () => {
+describe("testing create booking one way trip function of booking service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -30,6 +30,9 @@ describe("testing create booking function of booking service", () => {
       .mockResolvedValue({
         totalSeatsLeft: mockData.totalSeats,
         price: mockData.price,
+        flightNo: "FL-123",
+        departureTime: "2026-06-20T10:00:00Z",
+        arrivalTime: "2026-06-20T12:00:00Z",
       });
 
     const decrementSeatSpy = jest
@@ -68,7 +71,17 @@ describe("testing create booking function of booking service", () => {
     expect(createBookingSpy).toHaveBeenCalledWith(
       {
         userId: mockData.userId,
-        flightId: mockData.flightId,
+        outboundFlightId: mockData.flightId,
+        flightSnapshot: {
+          outbound: {
+            flightId: mockData.flightId,
+            flightNo: "FL-123",
+            departureTime: "2026-06-20T10:00:00Z",
+            arrivalTime: "2026-06-20T12:00:00Z",
+            price: mockData.price,
+          },
+          return: null,
+        },
         noOfSeats: mockData.noOfSeats,
         totalCost: mockData.noOfSeats * mockData.price,
         status: "INITIATED",
@@ -123,6 +136,9 @@ describe("testing create booking function of booking service", () => {
       .mockResolvedValue({
         totalSeatsLeft: mockData.totalSeats,
         price: mockData.price,
+        flightNo: "FL-123",
+        departureTime: "2026-06-20T10:00:00Z",
+        arrivalTime: "2026-06-20T12:00:00Z",
       });
 
     const decrementSeatSpy = jest
@@ -154,7 +170,17 @@ describe("testing create booking function of booking service", () => {
     expect(createBookingSpy).toHaveBeenCalledWith(
       {
         userId: mockData.userId,
-        flightId: mockData.flightId,
+        outboundFlightId: mockData.flightId,
+        flightSnapshot: {
+          outbound: {
+            flightId: mockData.flightId,
+            flightNo: "FL-123",
+            departureTime: "2026-06-20T10:00:00Z",
+            arrivalTime: "2026-06-20T12:00:00Z",
+            price: mockData.price,
+          },
+          return: null,
+        },
         noOfSeats: mockData.noOfSeats,
         totalCost: mockData.noOfSeats * mockData.price,
         status: "INITIATED",
@@ -182,6 +208,10 @@ describe("testing cancelBooking function of booking service", () => {
     flightId: 1,
     noOfSeats: 2,
     status: "INITIATED",
+    flightSnapshot: {
+      outbound: { flightId: 1 },
+      return: null,
+    },
     save: jest.fn().mockResolvedValue(),
   };
 
@@ -207,7 +237,6 @@ describe("testing cancelBooking function of booking service", () => {
     expect(publishSpy).toHaveBeenCalledWith("booking.cancelled", {
       bookingId: mockBooking.id,
       userId: mockBooking.userId,
-      flightId: mockBooking.flightId,
       noOfSeats: mockBooking.noOfSeats,
     });
   });

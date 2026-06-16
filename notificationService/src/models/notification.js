@@ -21,6 +21,10 @@ module.exports = (sequelize, DataTypes) => {
         ),
         allowNull: false,
       },
+      journeyType: {
+        type: DataTypes.ENUM("OUTBOUND", "RETURN"),
+        allowNull: true,
+      },
       channel: {
         type: DataTypes.ENUM("EMAIL", "SMS", "PUSH"),
         defaultValue: "EMAIL",

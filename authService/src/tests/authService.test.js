@@ -191,7 +191,7 @@ describe("testing login function of auth service", () => {
 
     //calling login function to check if it throws error
     await expect(() => authService.login(mockUserInput)).rejects.toThrow(
-      "This account uses Google login. Please sign in with Google.",
+      "This account uses Google login. Use 'Forgot Password' to set a password, or sign in with Google.",
     );
 
     //checking dependencies

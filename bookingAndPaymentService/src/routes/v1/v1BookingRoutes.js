@@ -8,7 +8,7 @@ const schemas = require("../../utils/booking.validation");
  * @swagger
  * /api/v1/bookings:
  *   post:
- *     summary: Create a new booking
+ *     summary: Create a new booking for one way trip only
  *     tags: [Bookings]
  *     description: "Access: Any authenticated user"
  *     security:
@@ -51,6 +51,57 @@ const schemas = require("../../utils/booking.validation");
  *         description: Booking created
  */
 router.post("/", authMiddleware, validate(schemas.createBooking), bookingController.createBooking);
+/**
+ * @swagger
+ * /api/v1/bookings/round:
+ *   post:
+ *     summary: Create a new booking for round trip only
+ *     tags: [Bookings]
+ *     description: "Access: Any authenticated user"
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - outboundFlightId
+ *               - returnFlightId   
+ *               - noOfSeats
+ *               - passengers
+ *             properties:
+ *               outboundFlightId:
+ *                 type: integer
+ *                 example: 1
+ *               returnFlightId:
+ *                 type: integer
+ *                 example: 1
+ *               noOfSeats:
+ *                 type: integer
+ *                 example: 2
+ *               passengers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - fullName
+ *                   properties:
+ *                     fullName:
+ *                       type: string
+ *                       example: John Doe
+ *                     age:
+ *                       type: integer
+ *                       example: 28
+ *                     seatNo:
+ *                       type: string
+ *                       example: 12A
+ *     responses:
+ *       201:
+ *         description: Booking created
+ */
+router.post("/round", authMiddleware, validate(schemas.createBookingRound), bookingController.createBookingRound);
 /**
  * @swagger
  * /api/v1/bookings:

@@ -2,6 +2,7 @@ const { logger, AppError } = require("shared");
 const NotificationRepository = require("../repositories/notification.repository");
 const authClient = require("../utils/authClient.js");
 const flightClient = require("../utils/flightClient.js");
+const bookingClient = require("../utils/bookingClient.js");
 const emailService = require("./email.service");
 const emailTemplates = require("../utils/emailTemplate.js");
 
@@ -11,29 +12,31 @@ class NotificationService {
   async handleEvent(eventType, payload) {
     let recipientEmail = "unknown@example.com";
     let emailSubject = "Failed before rendering";
-    
+
     try {
       // 1. Fetch user email from AuthService
       const user = await authClient.getUserById(payload.userId);
       if (!user || !user.email) {
-        throw new AppError(`User ${payload.userId} not found or has no email`, 500);
+        throw new AppError(
+          `User ${payload.userId} not found or has no email`,
+          500,
+        );
       }
       recipientEmail = user.email;
 
-      // 2. Fetch flight details (if event has a flightId)
-      let flight = null;
-      if (payload.flightId) {
+      // 2. Fetch flightSnapshot details of booking (if event has a bookingId)
+      let booking = null;
+      if (payload.bookingId) {
         try {
-          flight = await flightClient.getFlightById(payload.flightId);
+          booking = await bookingClient.getBookingById(payload.bookingId);
         } catch (e) {
           logger.warn(
-            `Could not fetch flight ${payload.flightId}, proceeding without flight details`,
+            `Could not fetch booking ${payload.bookingId}, proceeding without flight details`,
           );
         }
       }
-
       // 3. Build email content
-      const enrichedData = { ...payload, user, flight };
+      const enrichedData = { ...payload, user, booking };
       const { subject, html } = emailTemplates.build(eventType, enrichedData);
       emailSubject = subject;
 
@@ -48,15 +51,24 @@ class NotificationService {
       if (eventType !== "register.successful") {
         notificationData.bookingId = payload.bookingId;
       }
-      const notification = await notificationRepository.create(notificationData);
+      if (eventType === "departure.reminder") {
+        notificationData.journeyType = payload.journeyType;
+      }
+      const notification =
+        await notificationRepository.create(notificationData);
 
       // 5. Send email
       try {
         await emailService.send(recipientEmail, emailSubject, html);
         notification.status = "SENT";
         notification.sentAt = new Date();
-        const bookingLog = eventType !== "register.successful" ? ` for booking #${payload.bookingId}` : "";
-        logger.info(`Sent ${eventType} email to ${recipientEmail}${bookingLog}`);
+        const bookingLog =
+          eventType !== "register.successful"
+            ? ` for booking #${payload.bookingId}`
+            : "";
+        logger.info(
+          `Sent ${eventType} email to ${recipientEmail}${bookingLog}`,
+        );
       } catch (emailError) {
         notification.status = "FAILED";
         notification.failReason = emailError.message;
@@ -81,6 +93,9 @@ class NotificationService {
         if (eventType !== "register.successful") {
           failedNotificationData.bookingId = payload.bookingId;
         }
+        if (eventType === "departure.reminder") {
+          notificationData.journeyType = payload.journeyType;
+        }
         await notificationRepository.create(failedNotificationData);
       } catch (dbError) {
         logger.error(`Could not even save failure record: ${dbError.message}`);
@@ -94,15 +109,10 @@ class NotificationService {
       const existing = await notificationRepository.findExistingReminder(
         booking.userId,
         booking.bookingId,
+        booking.journeyType,
       );
       if (existing) continue;
-
-      await this.handleEvent("departure.reminder", {
-        bookingId: booking.bookingId,
-        userId: booking.userId,
-        flightId: booking.flightId,
-        noOfSeats: booking.noOfSeats,
-      });
+      await this.handleEvent("departure.reminder", booking);
     }
   }
 
