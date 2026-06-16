@@ -6,13 +6,20 @@ export default function MobileWarning() {
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      // Only show if it's a mobile screen AND the user hasn't dismissed it yet
+      const isDismissed = localStorage.getItem('mobileWarningDismissed');
+      setIsMobile(window.innerWidth <= 768 && !isDismissed);
     };
     
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  const handleDismiss = () => {
+    localStorage.setItem('mobileWarningDismissed', 'true');
+    setIsMobile(false);
+  };
 
   if (!isMobile) return null;
 
@@ -27,7 +34,7 @@ export default function MobileWarning() {
         <h2>Desktop Experience Recommended</h2>
         <p>This application features complex data tables, an admin dashboard, and a detailed flight matrix.</p>
         <p>For the best viewing experience, please open this site on a desktop or laptop device.</p>
-        <button className="mobile-warning-btn" onClick={() => setIsMobile(false)}>
+        <button className="mobile-warning-btn" onClick={handleDismiss}>
           Continue Anyway
         </button>
       </div>
