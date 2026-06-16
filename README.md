@@ -1,4 +1,4 @@
-# SkyBooker — Airline Booking Backend
+# SkyBooker — Airline Booking Full-Stack Application
 
 An airline booking backend built with Node.js microservices, featuring RabbitMQ-based event-driven communication, Saga-driven distributed transactions, Redis caching with graceful degradation, Google OAuth, RBAC, and Dockerized deployment on Render.
 
@@ -40,8 +40,16 @@ SkyBooker is a microservices-based airline booking system that implements a comp
 
 ## Live Demo
 
-> Services are hosted on Render's free tier — first request may take ~30-50s to wake up (cold start).
+> Services are hosted on Render's free tier — first request on homepage or api-docs may take ~30-50s to wake up (cold start).
+### Frontend Links
+> [!WARNING]
+> **Cross-Domain Cookie Limitation (Safari):** Because the frontend (`skybooker.xyz`) and backend (`onrender.com`) are on different domains, the backend drops a "Third-Party Cookie" (`SameSite=None`). Browsers like Chrome and Firefox allow this, but **Safari's Intelligent Tracking Prevention completely blocks all third-party cookies**. 
 
+- **Primary Domain:** [https://www.skybooker.xyz](https://www.skybooker.xyz)
+- **Redirect Domain:** [https://skybooker.xyz](https://skybooker.xyz)
+- **Vercel Backup:** [https://airline-booking-system-orcin.vercel.app](https://airline-booking-system-orcin.vercel.app)
+
+### Backend API Docs
 > [!NOTE]
 > **Email delivery:** The Auth Service automatically pings the Notification Service on startup. However, if emails don't arrive immediately after your first action, wait ~30 seconds and retry — the Notification Service may still be waking up from a cold start.
 
@@ -66,13 +74,14 @@ Password:  Admin@123
 - **Event-driven notifications** — RabbitMQ pub/sub for async email delivery (booking, cancellation, reminders)
 - **Saga pattern** — Compensating transactions for cross-service seat reservation rollbacks
 - **Redis caching** — Cache-aside with graceful degradation; sub-50ms flight search on cache hits
-- **Rolling refresh tokens** — HttpOnly secure cookies with token rotation and stolen-token detection
+- **Persistent sessions with expiry extension** — HttpOnly secure cookies with sliding expiration and multi-device session limits
 - **Google OAuth 2.0** — One-click login alongside email/password with OTP-based password reset
 - **Role-based access control** — USER, ADMIN, AIRLINE_STAFF roles with middleware-enforced route guards
 - **Internal API security** — Service-to-service calls authenticated via shared `x-internal-api-key` header
 - **Booking lifecycle** — Full state machine (INITIATED → PENDING → CONFIRMED → CANCELLED/EXPIRED)
 - **Auto-expiry cron** — Unpaid bookings expire after 10 minutes; seats auto-restored
 - **Dual email provider** — Auto-switches between Nodemailer (local) and Resend (cloud) based on environment
+- **React SPA integration** — Admin dashboard, flight search with round-trip support, and seamless responsive UI
 - **Dockerized deployment** — Docker Compose for local dev; Render for production with CI/CD on push
 
 ---
@@ -149,6 +158,7 @@ Password:  Admin@123
 | Layer | Technology |
 |---|---|
 | Runtime | Node.js 22 (Alpine) |
+| Frontend | React, Vite, React Router, CSS |
 | Framework | Express.js |
 | ORM | Sequelize 6 + Sequelize CLI |
 | Database | PostgreSQL 16 |
@@ -222,18 +232,23 @@ Four PostgreSQL databases, one per service. Each service owns its data and commu
 │  ├──────────────┤     ├──────────────┤     ├──────────────┤                    │
 │  │ id       PK  │◄────│ bookingId FK │     │ id       PK  │                    │
 │  │ userId       │     │ name         │     │ bookingId FK │                    │
-│  │ flightId     │     │ age          │     │   (unique)   │                    │
+│  │ outboundFlightId│  │ age          │     │   (unique)   │                    │
 │  │ noOfSeats    │     │ gender       │     │ amount       │                    │
 │  │ totalCost    │     └──────────────┘     │ status       │                    │
-│  │ status       │          1:N             │  (PENDING,   │                    │
-│  │  (INITIATED, │                          │   SUCCESS,   │                    │
-│  │   PENDING,   │                 1:1      │   FAILED,    │                    │
-│  │   CONFIRMED, │─────────────────────────►│   REFUNDED)  │                    │
-│  │   CANCELLED, │                          │ paymentMethod│                    │
-│  │   EXPIRED)   │                          │ gateway      │                    │
-│  │ bookedAt     │                          │ transactionId│                    │
-│  └──────────────┘                          │ paidAt       │                    │
-│                                            └──────────────┘                    │
+│  │ tripType     │          1:N             │  (PENDING,   │                    │
+│  │  (ONE_WAY,   │                          │   SUCCESS,   │                    │
+│  │   ROUND_TRIP)│               1:1        │   FAILED,    │                    │
+│  │ returnFlightId(nullable)───────────────►│   REFUNDED)  │                    │
+│  │ status       │                          │ paymentMethod│                    │
+│  │  (INITIATED, │                          │ gateway      │                    │
+│  │   PENDING,   │                          │ transactionId│                    │
+│  │   CONFIRMED, │                          │ paidAt       │                    │
+│  │   CANCELLED, │                          └──────────────┘                    │
+│  │   EXPIRED)   │                                                              │
+│  │ bookedAt     │                                                              │
+│  | flightSnapShot                                                              |
+|  └──────────────┘                                                              │
+│                                                                                │
 └────────────────────────────────────────────────────────────────────────────────┘
 
 ┌────────────────────────────────────────────────────────────────────────────────────┐
@@ -308,9 +323,9 @@ Sequelize's `sequelize.transaction()` provides automatic commit/rollback with as
 
 `sequelize-cli db:seed:all` stops at the first error. If a seeder tries to insert a row that already exists (e.g., the "USER" role), it throws a unique constraint error and prevents all subsequent seeders from running. Each seeder checks for existing data before inserting (`SELECT ... LIMIT 1`), making container restarts with persistent volumes reliable.
 
-### Why rolling refresh tokens in HttpOnly cookies?
+### Why persistent sessions in HttpOnly cookies?
 
-Access tokens are short-lived (15 min) and sent via `Authorization` header. Refresh tokens are long-lived and stored in an **HttpOnly, Secure, SameSite=Strict** cookie — never accessible to JavaScript, which eliminates XSS-based token theft. On each `/auth/refresh` call, the old refresh token is invalidated and a new one is issued (token rotation). If a stolen token is reused after rotation, the mismatch is detected and all sessions for that user are invalidated. Each user is limited to 2 active sessions — a third login evicts the oldest session automatically.
+Access tokens are short-lived (15 min) and sent via `Authorization` header. Session tokens are long-lived and stored in an **HttpOnly, Secure, SameSite=None** cookie (in production) — never accessible to JavaScript, which eliminates XSS-based token theft. Instead of rotating tokens, sessions use a sliding window expiration: on each `/auth/refresh` call, the session's `expiresAt` time is extended in the database, allowing users to stay logged in seamlessly up to an `absoluteExpiry` hard limit (e.g., 30 days). Each user is limited to 2 active sessions — a third login evicts the oldest session automatically.
 
 ---
 
@@ -521,6 +536,7 @@ Request → authMiddleware (JWT verify) → authorize(...roles) → Controller
 | BOOKING SERVICE                                                                  |
 +--------------------------------------+--------+--------+--------------+----------+
 | POST  /bookings                      |        |   ✓    |      ✓       |    ✓     |
+| POST  /bookings/round                |        |   ✓    |      ✓       |    ✓     |
 | GET   /bookings                      |        |   ✓    |      ✓       |    ✓     |
 | GET   /bookings/:id                  |        |   ✓    |      ✓       |    ✓     |
 | PATCH /bookings/:id/cancel           |        |   ✓    |      ✓       |    ✓     |
@@ -709,6 +725,23 @@ Redis is used instead of the database for OTPs because:
 
 ---
 
+## Frontend React SPA Integration
+
+While the primary focus of this architecture is the backend microservices, a **React SPA (Single Page Application)** powered by Vite is implemented to prove the end-to-end capabilities of the entire flow.
+
+**Frontend Features:**
+- **Admin Dashboard:** A dedicated control panel allowing admins to manage flights, airplanes, users, assign roles, and force-cancel bookings.
+- **Flight Search & Round-Trip:** Dynamic searching with support for both `ONE_WAY` and `ROUND_TRIP` journey types, automatically grouping departure and return flights.
+- **Session Management:** Seamless handling of `HttpOnly` cookie-based sessions, background token refreshing using Axios interceptors, and gracefully redirecting unauthenticated users.
+- **Real-time User Experience:** Dynamic loading states, interactive toast notifications for actions, and seamless client-side routing for an app-like feel.
+
+> [!NOTE]
+> **Cold Start Wakeup:** Render free-tier services sleep after 15 minutes. The frontend uses a custom hook to listen to the first Axios request to show a loading screen while the services wake up (which takes ~30 seconds).
+
+The frontend is minimal, highly responsive, and tightly coupled to the backend's distributed API architecture, deployed globally on Vercel.
+
+---
+
 ## API Documentation
 
 All 4 services expose interactive **Swagger UI** at `/api-docs`. Open the URL in your browser, click on any endpoint, fill in the parameters, and hit "Execute" to test it live.
@@ -891,6 +924,7 @@ This starts all 4 services + PostgreSQL + Redis + RabbitMQ. Migrations and seed 
 | Booking Service | http://localhost:5003/api-docs |
 | Notification Service | http://localhost:5004/api-docs |
 | RabbitMQ Dashboard | http://localhost:15672 (guest/guest) |
+| Frontend | http://localhost:3000 |
 
 **5. Stop and clean up**
 ```bash
@@ -930,14 +964,17 @@ This creates the 4 databases: `authentication_service_db_project`, `flight_searc
 
 **3. Install dependencies for each service**
 ```bash
-# Shared library (must be done first — other services depend on it)
+# Shared library (must be done first — other services depend on it except frontend)
 cd shared && npm install && cd ..
 
-# Each service
+# Each backend service
 cd authService && npm install && cd ..
 cd flightSearchService && npm install && cd ..
 cd bookingAndPaymentService && npm install && cd ..
 cd notificationService && npm install && cd ..
+
+# Frontend
+ cd frontend && npm install && cd ..
 ```
 
 **4. Create and configure `.env` files**
@@ -948,6 +985,7 @@ cp authService/.env.example authService/.env
 cp flightSearchService/.env.example flightSearchService/.env
 cp bookingAndPaymentService/.env.example bookingAndPaymentService/.env
 cp notificationService/.env.example notificationService/.env
+cp frontend/.env.example frontend/.env
 ```
 
 Edit each `.env` file. Here is what each variable means:
@@ -964,6 +1002,8 @@ DB_USERNAME=postgres
 DB_PASSWORD=your-local-postgres-password
 DB_NAME=authentication_service_db_project
 DB_HOST=127.0.0.1
+FRONTEND_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 
 # Gmail App Password (not your regular Gmail password)
 # 1. Enable 2-Step Verification on your Google Account
@@ -978,6 +1018,8 @@ EMAIL_PASS=xxxx xxxx xxxx xxxx
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 GOOGLE_CALLBACK_URL=http://localhost:5001/api/v1/auth/google/callback
+FRONTEND_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
 **`flightSearchService/.env`**
@@ -990,6 +1032,8 @@ DB_USERNAME=postgres
 DB_PASSWORD=your-local-postgres-password
 DB_NAME=flight_search_db_project
 DB_HOST=127.0.0.1
+FRONTEND_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
 **`bookingAndPaymentService/.env`**
@@ -1003,6 +1047,8 @@ DB_USERNAME=postgres
 DB_PASSWORD=your-local-postgres-password
 DB_NAME=booking_service_db_project
 DB_HOST=127.0.0.1
+FRONTEND_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
 **`notificationService/.env`**
@@ -1020,6 +1066,16 @@ DB_USERNAME=postgres
 DB_PASSWORD=your-local-postgres-password
 DB_NAME=notification_service_db
 DB_HOST=127.0.0.1
+FRONTEND_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+```
+
+**`frontend/.env`**
+```env
+VITE_FLIGHT_SERVICE_URL=http://localhost:5000
+VITE_AUTH_SERVICE_URL=http://localhost:5001
+VITE_BOOKING_SERVICE_URL=http://localhost:5003
+VITE_NOTIFICATION_SERVICE_URL=http://localhost:5004
 ```
 
 **5. Run migrations and seeders**
@@ -1043,6 +1099,9 @@ cd bookingAndPaymentService && node src/index.js
 
 # Terminal 4
 cd notificationService && node src/index.js
+
+# Terminal 5
+cd frontend && npm run dev
 ```
 
 **7. Verify**
@@ -1058,6 +1117,18 @@ curl http://localhost:5004/health   # {"status":"ok"}
 ## Project Structure
 
 ```
+├── frontend/
+│   ├── public/                   # Static assets (SVG favicon)
+│   ├── src/
+│   │   ├── api/                  # Axios instances and token refresh logic
+│   │   ├── components/           # Reusable React components (Navbar, ProtectedRoute)
+│   │   ├── context/              # React Context (AuthContext, ToastContext)
+│   │   ├── hooks/                # Custom hooks (useColdStartLoading)
+│   │   ├── pages/                # Home, Book, Payment, MyBookings, AdminDashboard
+│   │   └── styles/               # Global CSS and utility classes
+│   ├── vercel.json               # Vercel deployment config (rewrites, rewrites, headers)
+│   └── vite.config.js            # Vite build configuration
+│
 ├── authService/
 │   ├── Dockerfile
 │   ├── start.sh                  # Migration + seed + start
@@ -1129,35 +1200,40 @@ curl http://localhost:5004/health   # {"status":"ok"}
 | Flight Service | Render | Free Web Service (Docker) | Flight search, Redis caching |
 | Booking Service | Render | Free Web Service (Docker) | Booking lifecycle, payments |
 | Notification Service | Render | Free Web Service (Docker) | Email dispatch via RabbitMQ consumers |
-| PostgreSQL | Render | Free Managed Database | All 4 services share one database |
+| Frontend SPA | Vercel | Free Hosting | Global CDN delivery of React static assets |
+| PostgreSQL | Supabase | Free Managed Database | High-performance DB connection pooler (all 4 services share one database) |
 | Redis | Upstash | Free Serverless Redis | OTP store + flight search cache |
 | RabbitMQ | CloudAMQP | Free (Little Lemur) | Event bus for notifications |
 | Email (cloud) | Resend | Free (100 emails/day) | HTTPS email delivery (bypasses SMTP block) |
 
 ### How deployment works
 
-Each service deploys from the **same GitHub monorepo** using its own Dockerfile:
+The entire full-stack application deploys from the **same GitHub monorepo**:
 
-```
-GitHub push to master
-        │
-        ▼
-Render detects change → builds Docker image
-        │
-        ├── Auth:         Dockerfile at authService/Dockerfile, context: .
-        ├── Flight:       Dockerfile at flightSearchService/Dockerfile, context: .
-        ├── Booking:      Dockerfile at bookingAndPaymentService/Dockerfile, context: .
-        └── Notification: Dockerfile at notificationService/Dockerfile, context: .
-        │
-        ▼
-Container starts → start.sh runs:
-        1. npx sequelize-cli db:migrate   (applies pending migrations)
-        2. npx sequelize-cli db:seed:all  (idempotent — skips if data exists)
-        3. node src/index.js              (starts the Express server)
-        │
-        ▼
-Render assigns HTTPS URL (e.g., https://airline-auth-service.onrender.com)
-Render health check pings /health every 30s
+```text
+                               GitHub push to master
+                                        │
+                 ┌──────────────────────┴──────────────────────┐
+                 ▼                                             ▼
+       Vercel (Frontend SPA)                            Render (Backend Microservices)
+       Detects push to `frontend/`                      Detects push to root
+                 │                                             │
+      Runs `npm install`                                Builds Docker images
+      Runs `npm run build` (Vite)                              │
+                 │                                             ├── Auth:         Dockerfile at authService/Dockerfile
+                 ▼                                             ├── Flight:       Dockerfile at flightSearchService/Dockerfile
+  Deploys static assets to Global CDN                          ├── Booking:      Dockerfile at bookingAndPaymentService/Dockerfile
+                 │                                             └── Notification: Dockerfile at notificationService/Dockerfile
+                 ▼                                             │
+   Assigns URL (skybooker.xyz)                                 ▼
+                                                       Container starts → start.sh runs:
+                                                               1. npx sequelize-cli db:migrate
+                                                               2. npx sequelize-cli db:seed:all
+                                                               3. node src/index.js
+                                                               │
+                                                               ▼
+                                                       Assigns HTTPS URLs (onrender.com)
+                                                       Pings /health every 30s
 ```
 
 ### Environment variables on Render
@@ -1167,5 +1243,5 @@ Environment variables are set in the Render dashboard (not in code). Each servic
 ### Known limitations
 
 - **Cold starts (~30-50s):** Render free tier spins down services after 15 min of inactivity. The first request wakes it up.
-- **Single database:** Render free tier provides one PostgreSQL database. All 4 services share it (tables don't overlap). Locally, Docker Compose creates 4 separate databases via `init-db.sql`.
+- **Supabase Database Limits:** Supabase free tier provides a limit of 2 active databases. To fit within this limit, all 4 services share one single database in production (tables don't overlap). Locally, Docker Compose creates 4 separate databases via `init-db.sql`.
 - **Notification service wakeup:** RabbitMQ messages do not wake a sleeping Render service. The auth service auto-pings the notification service on startup, but there may be a ~30s delay before emails are processed after a cold start.
