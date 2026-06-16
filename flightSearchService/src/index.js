@@ -12,10 +12,12 @@ const setAndStartServer = async () => {
 
   // CORS — allow frontend origins
   app.use((req, res, next) => {
+    const extraOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [];
     const allowedOrigins = [
       "http://localhost:5173",
       "http://localhost:3000",
       process.env.FRONTEND_URL,
+      ...extraOrigins
     ].filter(Boolean);
     const origin = req.headers.origin;
     if (allowedOrigins.includes(origin)) {
