@@ -76,3 +76,12 @@ export function getCityName(flight, type) {
   const airport = type === 'departure' ? flight?.departureAirport : flight?.arrivalAirport;
   return airport?.City?.name || airport?.name || '—';
 }
+
+export function maskEmail(email) {
+  if (!email) return '';
+  const parts = email.split('@');
+  if (parts.length !== 2) return email;
+  const name = parts[0];
+  if (name.length <= 3) return email;
+  return name.substring(0, 3) + '******@' + parts[1];
+}

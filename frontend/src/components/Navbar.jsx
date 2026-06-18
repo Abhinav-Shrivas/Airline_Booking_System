@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Navbar() {
-  const { isAuthenticated, user, logout, logoutFromOtherDevices } = useAuth();
+  const { isAuthenticated, user, logout, logoutFromOtherDevices, deleteAccount } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -32,16 +32,16 @@ export default function Navbar() {
         <div className="navbar-actions">
           {isAuthenticated ? (
             <>
-              <Link to="/bookings" className="nav-link">
+              <NavLink to="/bookings" className="nav-link">
                 My Bookings
-              </Link>
-              <Link to="/notifications" className="nav-link">
+              </NavLink>
+              <NavLink to="/notifications" className="nav-link">
                 Notifications
-              </Link>
+              </NavLink>
               {user?.roles?.includes('ADMIN') && (
-                <Link to="/admin" className="nav-link" style={{ color: 'var(--color-warning)' }}>
+                <NavLink to="/admin" className="nav-link" style={{ color: 'var(--color-warning)' }}>
                   Manage as Admin
-                </Link>
+                </NavLink>
               )}
               
               <div className="nav-user-dropdown-container" ref={dropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', marginLeft: '0.5rem' }}>
@@ -102,18 +102,37 @@ export default function Navbar() {
                     >
                       Logout from other devices
                     </button>
+                    <button 
+                      type="button" 
+                      onClick={async () => {
+                        setDropdownOpen(false);
+                        if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+                          try {
+                            await deleteAccount(user.id);
+                            alert('Your account has been deleted successfully.');
+                          } catch (err) {
+                            alert('Failed to delete account');
+                          }
+                        }
+                      }}
+                      style={{ padding: '0.75rem 1rem', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', color: 'var(--color-error)', fontWeight: 'bold' }}
+                      onMouseEnter={(e) => e.target.style.background = 'var(--color-background)'}
+                      onMouseLeave={(e) => e.target.style.background = 'none'}
+                    >
+                      Delete Account
+                    </button>
                   </div>
                 )}
               </div>
             </>
           ) : (
             <>
-              <Link to="/login" className="btn btn-ghost">
+              <NavLink to="/login" className="btn btn-ghost">
                 Login
-              </Link>
-              <Link to="/register" className="btn btn-primary">
+              </NavLink>
+              <NavLink to="/register" className="btn btn-primary">
                 Register
-              </Link>
+              </NavLink>
             </>
           )}
         </div>

@@ -1,3 +1,4 @@
+const { SESSION_COOKIE_NAME } = require("../config/serverConfig");
 const userService = require("../services/user.service");
 const { asyncHandler, successResponse, AppError } = require("shared");
 
@@ -52,10 +53,26 @@ const deleteUser = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteOwnUser = asyncHandler(async (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  const { userId } = req.jwtPayload;
+  
+  if (targetId !== userId) {
+    throw new AppError("You can only delete your own account", 403);
+  }
+  
+  await userService.destroy(targetId);
+  res.clearCookie(SESSION_COOKIE_NAME);
+  successResponse(res, {
+    message: "Successfully deleted your account.",
+  });
+});
+
 module.exports = {
   fetchUser,
   fetchUserInternal,
   updateUser,
   deleteUser,
+  deleteOwnUser,
   changePassword,
 };

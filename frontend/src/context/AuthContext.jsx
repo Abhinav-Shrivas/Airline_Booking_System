@@ -119,6 +119,14 @@ export function AuthProvider({ children }) {
     await authApi.logoutFromOtherDevices();
   }, []);
 
+  const deleteAccount = useCallback(async (userId) => {
+    try {
+      await authApi.deleteOwnAccount(userId);
+    } finally {
+      clearAuth();
+    }
+  }, [clearAuth]);
+
   const value = useMemo(
     () => ({
       user,
@@ -127,11 +135,12 @@ export function AuthProvider({ children }) {
       register,
       logout,
       logoutFromOtherDevices,
+      deleteAccount,
       applyAuthResponse,
       isAuthenticated: Boolean(accessToken && user),
       isLoading,
     }),
-    [user, accessToken, login, register, logout, logoutFromOtherDevices, applyAuthResponse, isLoading]
+    [user, accessToken, login, register, logout, logoutFromOtherDevices, deleteAccount, applyAuthResponse, isLoading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

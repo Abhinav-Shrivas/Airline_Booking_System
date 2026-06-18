@@ -46,6 +46,19 @@ export default function Register() {
         <h1>Create account</h1>
         <p className="auth-subtitle">Join SkyBooker to search and book flights.</p>
 
+        <div style={{
+          background: 'rgba(245, 158, 11, 0.1)',
+          borderLeft: '4px solid #f59e0b',
+          padding: '0.75rem',
+          borderRadius: '4px',
+          marginBottom: '1.5rem',
+          fontSize: '0.85rem',
+          color: '#b45309',
+          textAlign: 'left'
+        }}>
+          <strong>Privacy Note (For Live Testing):</strong> This is a public portfolio demo. Please use a fake email address, or delete your account after testing.
+        </div>
+
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
             <label htmlFor="name">Full name</label>

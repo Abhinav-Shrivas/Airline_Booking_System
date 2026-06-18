@@ -47,6 +47,9 @@ SkyBooker is a microservices-based airline booking system that implements a comp
 > [!NOTE]
 > **Desktop Experience:** The frontend UI, particularly the admin dashboard and flight booking flow, is designed to showcase complex data. For the best viewing experience, please use a desktop or laptop screen rather than a mobile device.
 
+> [!CAUTION]
+> **Privacy Notice:** This is a publicly accessible portfolio demo. The frontend masks emails, but the raw data can be viewed by anyone accessing the public API endpoints with the provided admin credentials. **Please use a fake/dummy email address for testing, or use the "Delete Account" feature when finished.**
+
 - **Primary Domain:** [https://www.skybooker.xyz](https://www.skybooker.xyz)
 - **Redirect Domain:** [https://skybooker.xyz](https://skybooker.xyz)
 - **Vercel Backup:** [https://airline-booking-system-orcin.vercel.app](https://airline-booking-system-orcin.vercel.app)
@@ -513,6 +516,7 @@ Request → authMiddleware (JWT verify) → authorize(...roles) → Controller
 | POST  /auth/change-password          |        |   ✓    |      ✓       |    ✓     |
 | GET   /users/:id                     |        |   ✓    |      ✓       |    ✓     |
 | PATCH /users/:id                     |        |   ✓    |      ✓       |    ✓     |
+| DELETE /users/deleteOwn/:id          |        |   ✓    |      ✓       |    ✓     |
 | DELETE /users/:id                    |        |        |              |    ✓     |
 | POST  /admin/assignRole              |        |        |              |    ✓     |
 | PATCH /admin/updateRole              |        |        |              |    ✓     |

@@ -29,6 +29,11 @@ export async function logoutFromOtherDevices() {
   return data;
 }
 
+export async function deleteOwnAccount(userId) {
+  const { data } = await authAPI.delete(`/api/v1/users/deleteOwn/${userId}`);
+  return data;
+}
+
 export async function fetchUser(userId, accessToken) {
   const { data } = await authAPI.get(`/api/v1/users/${userId}`, {
     headers: { Authorization: `Bearer ${accessToken}` },

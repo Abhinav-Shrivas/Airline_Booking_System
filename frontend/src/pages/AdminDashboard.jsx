@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../context/ToastContext';
-import { extractApiError } from '../utils/formatters';
+import { extractApiError, maskEmail } from '../utils/formatters';
 import * as adminApi from '../api/admin';
 import { searchFlights } from '../api/flights';
 
@@ -605,7 +605,10 @@ export default function AdminDashboard() {
           {activeTab === 'users' && (
             <div>
               <h2>Manage Users</h2>
-              <p className="muted" style={{ marginBottom: '1.5rem', fontSize: '0.9rem' }}>View users, update their roles, or delete accounts.</p>
+              <p className="muted" style={{ marginBottom: '0.25rem', fontSize: '0.9rem' }}>View users, update their roles, or delete accounts.</p>
+              <p style={{ fontSize: '0.8rem', color: '#f59e0b', marginBottom: '1.5rem', fontStyle: 'italic' }}>
+                * Note: Emails are partially masked to protect user privacy in this public demo.
+              </p>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--color-border)', textAlign: 'left' }}>
@@ -617,7 +620,7 @@ export default function AdminDashboard() {
                     <tr key={u.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                       <td style={{ padding: '0.5rem 0' }}>{u.id}</td>
                       <td>{u.name}</td>
-                      <td>{u.email}</td>
+                      <td>{maskEmail(u.email)}</td>
                       <td>
                         {editingId === u.id ? (
                           <select value={editFormData.roleName} onChange={e => setEditFormData({ ...editFormData, roleName: e.target.value })} style={{ padding: '0.2rem' }}>

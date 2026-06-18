@@ -34,6 +34,30 @@ const {
 router.post("/change-password",attemptLimiter, authMiddleware, userController.changePassword);
 /**
  * @swagger
+ * /api/v1/users/deleteOwn/{id}:
+ *   delete:
+ *     summary: Delete own account
+ *     tags: [Users]
+ *     description: "Access: Own profile only"
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Successfully deleted your account
+ *       403:
+ *         description: You can only delete your own account
+ */
+router.delete("/deleteOwn/:id", authMiddleware, userController.deleteOwnUser);
+
+/**
+ * @swagger
  * /api/v1/users/{id}:
  *   delete:
  *     summary: Delete a user

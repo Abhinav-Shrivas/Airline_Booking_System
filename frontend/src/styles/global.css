@@ -141,8 +141,13 @@ select {
   text-decoration: none;
 }
 
-.nav-link:hover {
+.nav-link:hover,
+.nav-link.active {
   color: var(--color-accent);
+}
+
+.nav-link.active {
+  font-weight: 600;
 }
 
 .nav-user {
@@ -199,8 +204,10 @@ select {
   color: var(--color-text);
 }
 
-.btn-ghost:hover {
-  background: var(--color-bg);
+.btn-ghost:hover:not(:disabled),
+.btn-ghost.active {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--color-accent);
 }
 
 .btn-sm {
