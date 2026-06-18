@@ -115,30 +115,40 @@ export default function Home() {
         
         <div style={{
           marginTop: '1.5rem',
-          padding: '1rem',
+          padding: '0.75rem 1rem',
           background: 'rgba(15, 23, 42, 0.05)',
           border: '1px solid rgba(15, 23, 42, 0.1)',
           borderRadius: '8px',
           display: 'inline-block',
-          fontSize: '0.9rem',
+          fontSize: '0.85rem',
           textAlign: 'left'
         }}>
-          <div style={{ marginBottom: '0.5rem' }}>
+          <div style={{ 
+            fontWeight: '700', 
+            fontSize: '0.9rem', 
+            color: '#0f172a', 
+            marginBottom: '0.5rem', 
+            borderBottom: '1px solid rgba(15, 23, 42, 0.1)', 
+            paddingBottom: '0.4rem' 
+          }}>
+            Sample Routes & Demo Info
+          </div>
+          <div style={{ marginBottom: '0.4rem' }}>
             <span style={{ fontWeight: '600', color: '#1e293b' }}>✈️ Outbound Route: </span>
             <span style={{ color: '#334155' }}>Delhi to Mumbai (Oct 15, 2026)</span>
           </div>
-          <div style={{ marginBottom: '0.5rem' }}>
+          <div style={{ marginBottom: '0.4rem' }}>
             <span style={{ fontWeight: '600', color: '#1e293b' }}>🔄 Return Route: </span>
             <span style={{ color: '#334155' }}>Mumbai to Delhi (Oct 18, 2026)</span>
           </div>
-          <div style={{ marginBottom: '0.5rem' }}>
+          <div style={{ marginBottom: '0.4rem' }}>
             <span style={{ fontWeight: '600', color: '#1e293b' }}>🔐 Admin Login: </span>
             <span style={{ color: '#334155' }}>admin@airline.com / Admin@123</span>
           </div>
-          <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>
             * Feel free to add your own flights using the Admin Dashboard!
           </div>
-          <div style={{ fontSize: '0.85rem', color: '#f59e0b', marginTop: '0.25rem', fontWeight: '500' }}>
+          <div style={{ fontSize: '0.8rem', color: '#f59e0b', marginTop: '0.2rem', fontWeight: '500' }}>
             ⚠️ Note: Backend services may take ~30-50s to wake up on the first request.
           </div>
         </div>
