@@ -41,6 +41,8 @@ SkyBooker is a microservices-based airline booking system that implements a comp
 ## Live Demo
 
 > Services are hosted on Render's free tier — first request on homepage or api-docs may take ~30-50s to wake up (cold start).
+
+> Refer [API DOCUMENTATION](#api-documentation) for sample flight and user(admin) data.
 ### Frontend Links
 > [!NOTE]
 > **Desktop Experience:** The frontend UI, particularly the admin dashboard and flight booking flow, is designed to showcase complex data. For the best viewing experience, please use a desktop or laptop screen rather than a mobile device.

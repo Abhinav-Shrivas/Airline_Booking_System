@@ -112,6 +112,33 @@ export default function Home() {
       <section className="hero">
         <h1>Find your next flight</h1>
         <p>Search flights across major Indian cities — simple, fast, and reliable.</p>
+        
+        <div style={{
+          marginTop: '1.5rem',
+          padding: '1rem',
+          background: 'rgba(15, 23, 42, 0.05)',
+          border: '1px solid rgba(15, 23, 42, 0.1)',
+          borderRadius: '8px',
+          display: 'inline-block',
+          fontSize: '0.9rem',
+          textAlign: 'left'
+        }}>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <span style={{ fontWeight: '600', color: '#1e293b' }}>✈️ Outbound Route: </span>
+            <span style={{ color: '#334155' }}>Delhi to Mumbai (Oct 15, 2026)</span>
+          </div>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <span style={{ fontWeight: '600', color: '#1e293b' }}>🔄 Return Route: </span>
+            <span style={{ color: '#334155' }}>Mumbai to Delhi (Oct 18, 2026)</span>
+          </div>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <span style={{ fontWeight: '600', color: '#1e293b' }}>🔐 Admin Login: </span>
+            <span style={{ color: '#334155' }}>admin@airline.com / Admin@123</span>
+          </div>
+          <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem' }}>
+            * Feel free to add your own flights using the Admin Dashboard!
+          </div>
+        </div>
       </section>
 
       <form className="search-form card" onSubmit={handleSearch}>
