@@ -46,8 +46,6 @@ SkyBooker is a microservices-based airline booking system that implements a comp
 ### Frontend Links
 > [!NOTE]
 > **Desktop Experience:** The frontend UI, particularly the admin dashboard and flight booking flow, is designed to showcase complex data. For the best viewing experience, please use a desktop or laptop screen rather than a mobile device.
-> [!WARNING]
-> **Cross-Domain Cookie Limitation (Safari):** Because the frontend (`skybooker.xyz`) and backend (`onrender.com`) are on different domains, the backend drops a "Third-Party Cookie" (`SameSite=None`). Browsers like Chrome and Firefox allow this, but **Safari's Intelligent Tracking Prevention completely blocks all third-party cookies**. 
 
 - **Primary Domain:** [https://www.skybooker.xyz](https://www.skybooker.xyz)
 - **Redirect Domain:** [https://skybooker.xyz](https://skybooker.xyz)
