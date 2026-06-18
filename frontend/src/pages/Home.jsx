@@ -138,6 +138,9 @@ export default function Home() {
           <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem' }}>
             * Feel free to add your own flights using the Admin Dashboard!
           </div>
+          <div style={{ fontSize: '0.85rem', color: '#f59e0b', marginTop: '0.25rem', fontWeight: '500' }}>
+            ⚠️ Note: Backend services may take ~30-50s to wake up on the first request.
+          </div>
         </div>
       </section>
 
