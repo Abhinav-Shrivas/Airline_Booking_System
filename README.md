@@ -137,18 +137,30 @@ Password:  Admin@123
 ┌─────────────────────────────────┐
 │            Redis 7              │
 │                                 │
-│  Used by Auth Service:          │
+│  Used by Auth Service (OTP):    │
 │  • otp:{email}    2 min TTL     │
 │    Stores OTP code + attempt    │
 │    count for password reset     │
+│  ⚠ If Redis down:              │
+│    OTP feature returns error,   │
+│    rest of Auth Service works   │
 │                                 │
 │  Used by Flight Service:        │
 │  • flight:from=1&to=2&...       │
 │    5 min TTL — cache-aside      │
-│    pattern with graceful        │
-│    degradation (if Redis is     │
-│    down, falls back to DB)      │
-└─────────────────────────────────┘
+│  ⚠ If Redis down / cache miss: |
+│    Falls back to direct DB      │
+│    query — no outage, just      │
+│    slower responses             │
+└────────┬───────────┬────────────┘
+         │           │
+     OTP store   Cache-aside
+  (required for  (graceful
+   password      degradation)
+    reset)           │
+         │           │
+         ▼           ▼
+   Auth Service  Flight Service
 ```
 
 **Communication patterns:**
